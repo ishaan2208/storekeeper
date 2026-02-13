@@ -14,6 +14,16 @@ export default function Home() {
         <h2 className="text-xl font-semibold">Daily Operations</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link
+            href="/slips/new/receive"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm transition hover:border-emerald-400 dark:border-emerald-900 dark:bg-emerald-950"
+          >
+            <p className="text-lg font-medium text-emerald-900 dark:text-emerald-100">Receive Items (GRN)</p>
+            <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+              Record incoming inventory from vendors or new purchases.
+            </p>
+          </Link>
+
+          <Link
             href="/slips/new/issue"
             className="rounded-xl border bg-white p-5 shadow-sm transition hover:border-zinc-400 dark:bg-zinc-900"
           >
@@ -208,6 +218,7 @@ export default function Home() {
       <section className="rounded-xl border bg-white p-5 shadow-sm dark:bg-zinc-900">
         <h2 className="text-lg font-medium">Quick Guide</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-700 dark:text-zinc-300">
+          <li>Use Receive Items (GRN) to record incoming inventory from vendors or new purchases.</li>
           <li>Use Issue Items when stock or equipment is sent out.</li>
           <li>Use Return Items when stock or equipment is received back.</li>
           <li>Use Transfer Items for simple location-to-location moves.</li>

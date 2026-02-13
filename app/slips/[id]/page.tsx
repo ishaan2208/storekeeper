@@ -34,6 +34,7 @@ export default async function SlipDetailPage({ params }: SlipDetailPageProps) {
       requestedBy: true,
       issuedBy: true,
       receivedBy: true,
+      vendor: true,
       lines: {
         include: {
           item: true,
@@ -78,6 +79,11 @@ export default async function SlipDetailPage({ params }: SlipDetailPageProps) {
           <p>
             <span className="font-medium">To:</span> {slip.toLocation?.name ?? "-"}
           </p>
+          {slip.vendor ? (
+            <p>
+              <span className="font-medium">Vendor:</span> {slip.vendor.name}
+            </p>
+          ) : null}
           <p>
             <span className="font-medium">Requested By:</span> {slip.requestedBy?.name ?? "-"}
           </p>

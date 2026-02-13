@@ -171,6 +171,12 @@ export default async function SlipsListPage({ searchParams }: SlipsListPageProps
 
       <section className="flex flex-wrap gap-2">
         <Link
+          href="/slips/new/receive"
+          className="rounded border bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800"
+        >
+          + Receive (GRN)
+        </Link>
+        <Link
           href="/slips/new/issue"
           className="rounded border bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800"
         >

@@ -1,9 +1,7 @@
 import { DepartmentType, MovementType } from "@prisma/client";
 import Link from "next/link";
 
-import { DateRangeFilter } from "@/components/reports/date-range-filter";
-import { FilterActions } from "@/components/reports/filter-actions";
-import { PropertyLocationFilter } from "@/components/reports/property-location-filter";
+import { ReportFiltersForm } from "@/components/reports/report-filters-form";
 import { requireSessionOrThrow } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 
@@ -101,50 +99,44 @@ export default async function IssuesReportPage({
         </p>
       </header>
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900 print:hidden">
-        <h2 className="mb-3 text-lg font-medium">Filters</h2>
-        <form method="get" className="grid gap-4 sm:grid-cols-3">
-          <DateRangeFilter startDate={startDate} endDate={endDate} />
+      <ReportFiltersForm
+        properties={properties}
+        locations={locations}
+        startDate={startDate}
+        endDate={endDate}
+        propertyId={propertyId}
+        locationId={locationId}
+        clearHref="/reports/issues"
+      >
+        <label className="space-y-1 text-sm">
+          <span>Department</span>
+          <select
+            name="department"
+            defaultValue={department ?? ""}
+            className="w-full rounded border px-2 py-2"
+          >
+            <option value="">All</option>
+            {Object.values(DepartmentType).map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <PropertyLocationFilter
-            properties={properties}
-            locations={locations}
-            propertyId={propertyId}
-            locationId={locationId}
-          />
-
-          <label className="space-y-1 text-sm">
-            <span>Department</span>
-            <select
-              name="department"
-              defaultValue={department ?? ""}
-              className="w-full rounded border px-2 py-2"
-            >
-              <option value="">All</option>
-              {Object.values(DepartmentType).map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1 text-sm">
-            <span>Item Type</span>
-            <select
-              name="itemType"
-              defaultValue={itemType ?? ""}
-              className="w-full rounded border px-2 py-2"
-            >
-              <option value="">All</option>
-              <option value="ASSET">ASSET</option>
-              <option value="STOCK">STOCK</option>
-            </select>
-          </label>
-
-          <FilterActions clearHref="/reports/issues" />
-        </form>
-      </section>
+        <label className="space-y-1 text-sm">
+          <span>Item Type</span>
+          <select
+            name="itemType"
+            defaultValue={itemType ?? ""}
+            className="w-full rounded border px-2 py-2"
+          >
+            <option value="">All</option>
+            <option value="ASSET">ASSET</option>
+            <option value="STOCK">STOCK</option>
+          </select>
+        </label>
+      </ReportFiltersForm>
 
       <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
         <h2 className="mb-3 text-lg font-medium">Summary</h2>

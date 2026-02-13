@@ -44,6 +44,7 @@ type SlipFormProps = {
   users: SelectOption[];
   items: ItemOption[];
   assets: AssetOption[];
+  vendors?: SelectOption[];
   issueSlips?: Array<{ id: string; slipNo: string }>;
   prefillSourceSlipId?: string;
   submitAction: (formData: FormData) => void;
@@ -82,6 +83,7 @@ export function SlipForm({
   users,
   items,
   assets,
+  vendors = [],
   issueSlips = [],
   prefillSourceSlipId,
   submitAction,
@@ -265,21 +267,27 @@ export function SlipForm({
             </select>
           </label>
 
-          <label className="space-y-1 text-sm">
-            <span>From Location</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Where the item is currently kept.</p>
-            <select name="fromLocationId" className="w-full rounded border px-2 py-2" required>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {slipType !== SlipType.RECEIVE ? (
+            <label className="space-y-1 text-sm">
+              <span>From Location</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Where the item is currently kept.</p>
+              <select name="fromLocationId" className="w-full rounded border px-2 py-2" required>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <label className="space-y-1 text-sm">
-            <span>To Location</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Where the item is being moved to.</p>
+            <span>{slipType === SlipType.RECEIVE ? "Receiving Location" : "To Location"}</span>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {slipType === SlipType.RECEIVE
+                ? "Where the items will be stored after receiving."
+                : "Where the item is being moved to."}
+            </p>
             <select name="toLocationId" className="w-full rounded border px-2 py-2" required>
               {locations.map((location) => (
                 <option key={location.id} value={location.id}>
@@ -289,31 +297,63 @@ export function SlipForm({
             </select>
           </label>
 
-          <label className="space-y-1 text-sm">
-            <span>Requested By</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Person who asked for this movement.</p>
-            <select name="requestedById" className="w-full rounded border px-2 py-2">
-              <option value="">Select user</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {slipType === SlipType.RECEIVE ? (
+            <label className="space-y-1 text-sm">
+              <span>Vendor (optional)</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Select the vendor/supplier if this is a purchase.
+              </p>
+              <select name="vendorId" className="w-full rounded border px-2 py-2">
+                <option value="">Select vendor</option>
+                {vendors.map((vendor) => (
+                  <option key={vendor.id} value={vendor.id}>
+                    {vendor.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className="space-y-1 text-sm">
+              <span>Requested By</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Person who asked for this movement.</p>
+              <select name="requestedById" className="w-full rounded border px-2 py-2">
+                <option value="">Select user</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
-          <label className="space-y-1 text-sm">
-            <span>Issued By</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Person handing over the item.</p>
-            <select name="issuedById" className="w-full rounded border px-2 py-2">
-              <option value="">Select user</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {slipType === SlipType.RECEIVE ? (
+            <label className="space-y-1 text-sm">
+              <span>Received By</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Store person receiving the items.</p>
+              <select name="receivedById" className="w-full rounded border px-2 py-2">
+                <option value="">Select user</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className="space-y-1 text-sm">
+              <span>Issued By</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Person handing over the item.</p>
+              <select name="issuedById" className="w-full rounded border px-2 py-2">
+                <option value="">Select user</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {slipType === SlipType.RETURN ? (
             <label className="space-y-1 text-sm sm:col-span-2">

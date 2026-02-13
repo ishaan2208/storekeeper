@@ -88,7 +88,11 @@ export default async function NewIssueSlipPage({ searchParams }: IssuePageProps)
         properties={properties}
         locations={locations}
         users={users}
-        items={items}
+        items={items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          itemType: item.itemType,
+        }))}
         assets={assets.map((asset) => ({
           id: asset.id,
           assetTag: asset.assetTag,

@@ -1,8 +1,6 @@
 import { Condition, MovementType } from "@prisma/client";
 
-import { DateRangeFilter } from "@/components/reports/date-range-filter";
-import { FilterActions } from "@/components/reports/filter-actions";
-import { PropertyLocationFilter } from "@/components/reports/property-location-filter";
+import { ReportFiltersForm } from "@/components/reports/report-filters-form";
 import { requireSessionOrThrow } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 
@@ -162,49 +160,43 @@ export default async function DamageScrapReportPage({
         </p>
       </header>
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900 print:hidden">
-        <h2 className="mb-3 text-lg font-medium">Filters</h2>
-        <form method="get" className="grid gap-4 sm:grid-cols-3">
-          <DateRangeFilter startDate={startDate} endDate={endDate} />
+      <ReportFiltersForm
+        properties={properties}
+        locations={locations}
+        startDate={startDate}
+        endDate={endDate}
+        propertyId={propertyId}
+        locationId={locationId}
+        clearHref="/reports/damage-scrap"
+      >
+        <label className="space-y-1 text-sm">
+          <span>Report Type</span>
+          <select
+            name="reportType"
+            defaultValue={reportType}
+            className="w-full rounded border px-2 py-2"
+          >
+            <option value="all">All</option>
+            <option value="damage">Damage Reports Only</option>
+            <option value="scrap">Scrap Movements Only</option>
+          </select>
+        </label>
 
-          <PropertyLocationFilter
-            properties={properties}
-            locations={locations}
-            propertyId={propertyId}
-            locationId={locationId}
-          />
-
+        {reportType !== "scrap" && (
           <label className="space-y-1 text-sm">
-            <span>Report Type</span>
+            <span>Approval Status</span>
             <select
-              name="reportType"
-              defaultValue={reportType}
+              name="approved"
+              defaultValue={approved ?? ""}
               className="w-full rounded border px-2 py-2"
             >
-              <option value="all">All</option>
-              <option value="damage">Damage Reports Only</option>
-              <option value="scrap">Scrap Movements Only</option>
+              <option value="">All</option>
+              <option value="true">Approved</option>
+              <option value="false">Pending</option>
             </select>
           </label>
-
-          {reportType !== "scrap" && (
-            <label className="space-y-1 text-sm">
-              <span>Approval Status</span>
-              <select
-                name="approved"
-                defaultValue={approved ?? ""}
-                className="w-full rounded border px-2 py-2"
-              >
-                <option value="">All</option>
-                <option value="true">Approved</option>
-                <option value="false">Pending</option>
-              </select>
-            </label>
-          )}
-
-          <FilterActions clearHref="/reports/damage-scrap" />
-        </form>
-      </section>
+        )}
+      </ReportFiltersForm>
 
       <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
         <h2 className="mb-3 text-lg font-medium">Summary</h2>

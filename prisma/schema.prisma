@@ -37,6 +37,7 @@ enum Condition {
 }
 
 enum MovementType {
+    RECEIVE_IN
     ISSUE_OUT
     RETURN_IN
     TRANSFER
@@ -47,6 +48,7 @@ enum MovementType {
 }
 
 enum SlipType {
+    RECEIVE
     ISSUE
     RETURN
     TRANSFER
@@ -219,6 +221,8 @@ model Slip {
     issuedBy       User?          @relation("SlipIssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
     receivedById   String?
     receivedBy     User?          @relation("SlipReceivedBy", fields: [receivedById], references: [id], onDelete: Restrict)
+    vendorId       String?
+    vendor         Vendor?        @relation(fields: [vendorId], references: [id], onDelete: Restrict)
     sourceSlipId   String?
     sourceSlip     Slip?          @relation("SlipReturnLink", fields: [sourceSlipId], references: [id], onDelete: Restrict)
     returnSlips    Slip[]         @relation("SlipReturnLink")
@@ -296,6 +300,7 @@ model Vendor {
     address            String?
     specialization     String?
     isActive           Boolean             @default(true)
+    slips              Slip[]
     maintenanceTickets MaintenanceTicket[]
     createdAt          DateTime            @default(now())
     updatedAt          DateTime            @updatedAt

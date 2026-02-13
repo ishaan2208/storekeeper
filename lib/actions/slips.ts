@@ -52,15 +52,16 @@ const signatureSchema = z.object({
 });
 
 const createSlipInputSchema = z.object({
-  slipType: z.enum([SlipType.ISSUE, SlipType.RETURN, SlipType.TRANSFER, SlipType.MAINT]),
+  slipType: z.enum([SlipType.RECEIVE, SlipType.ISSUE, SlipType.RETURN, SlipType.TRANSFER, SlipType.MAINT]),
   propertyId: z.string().cuid(),
-  fromLocationId: z.string().cuid(),
+  fromLocationId: z.string().cuid().optional(),
   toLocationId: z.string().cuid(),
   sourceSlipId: z.string().cuid().optional(),
   department: z.nativeEnum(DepartmentType),
   requestedById: z.string().cuid().optional(),
   issuedById: z.string().cuid().optional(),
   receivedById: z.string().cuid().optional(),
+  vendorId: z.string().cuid().optional(),
   createdById: z.string().cuid().optional(),
   lines: z.array(slipLineSchema).min(1),
   signature: signatureSchema.optional(),
@@ -81,6 +82,7 @@ type TxClient = Omit<
 
 function generateSlipNo(slipType: SlipType): string {
   const prefixByType: Record<SlipType, string> = {
+    [SlipType.RECEIVE]: "RCV",
     [SlipType.ISSUE]: "ISS",
     [SlipType.RETURN]: "RET",
     [SlipType.TRANSFER]: "TRF",
@@ -129,6 +131,7 @@ async function adjustStockOrThrow(
 }
 
 function movementTypeForSlip(slipType: SlipType): MovementType {
+  if (slipType === SlipType.RECEIVE) return MovementType.RECEIVE_IN;
   if (slipType === SlipType.ISSUE) return MovementType.ISSUE_OUT;
   if (slipType === SlipType.RETURN) return MovementType.RETURN_IN;
   if (slipType === SlipType.TRANSFER) return MovementType.TRANSFER;
@@ -229,6 +232,7 @@ export async function createSlip(input: unknown) {
         requestedById: parsed.requestedById,
         issuedById: parsed.issuedById,
         receivedById: parsed.receivedById,
+        vendorId: parsed.vendorId,
       },
     });
 
@@ -248,8 +252,15 @@ export async function createSlip(input: unknown) {
 
       if (line.itemType === ItemType.STOCK) {
         const qty = new Prisma.Decimal(line.qty ?? 0);
-        await adjustStockOrThrow(tx, item.id, parsed.fromLocationId, qty.neg());
-        await adjustStockOrThrow(tx, item.id, parsed.toLocationId, qty);
+        
+        if (parsed.slipType === SlipType.RECEIVE) {
+          // For RECEIVE slips, only add stock to destination (no source location)
+          await adjustStockOrThrow(tx, item.id, parsed.toLocationId, qty);
+        } else {
+          // For other slip types, move stock from source to destination
+          await adjustStockOrThrow(tx, item.id, parsed.fromLocationId!, qty.neg());
+          await adjustStockOrThrow(tx, item.id, parsed.toLocationId, qty);
+        }
 
         await tx.slipLine.create({
           data: {

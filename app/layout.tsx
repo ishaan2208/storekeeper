@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import "./globals.css";
 
-import { clearSessionCookie, getSession } from "@/lib/auth-server";
+import { getSession } from "@/lib/auth-server";
+import { logoutAction } from "@/lib/auth-actions";
 
 export const metadata: Metadata = {
   title: "Storekeeper",
@@ -16,12 +16,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
-
-  async function logoutAction() {
-    "use server";
-    await clearSessionCookie();
-    redirect("/login");
-  }
 
   return (
     <html lang="en">
