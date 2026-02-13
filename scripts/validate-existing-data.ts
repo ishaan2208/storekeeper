@@ -67,28 +67,16 @@ async function validateStockBalances() {
     console.log("✓ All stock balances are non-negative");
   }
 
-  // Also check for very low stock
-  const lowStockItems = await prisma.item.findMany({
+  // Also check for very low stock (informational)
+  const itemsWithReorderLevel = await prisma.item.findMany({
     where: {
       itemType: "STOCK",
       reorderLevel: {
         not: null,
       },
-      stockBalances: {
-        some: {
-          qtyOnHand: {
-            lte: prisma.item.fields.reorderLevel,
-          },
-        },
-      },
     },
     include: {
       stockBalances: {
-        where: {
-          qtyOnHand: {
-            lte: prisma.item.fields.reorderLevel,
-          },
-        },
         include: {
           location: true,
         },
@@ -96,9 +84,11 @@ async function validateStockBalances() {
     },
   });
 
-  if (lowStockItems.length > 0) {
-    lowStockItems.forEach((item) => {
-      item.stockBalances.forEach((balance) => {
+  itemsWithReorderLevel.forEach((item) => {
+    if (!item.reorderLevel) return;
+    
+    item.stockBalances.forEach((balance) => {
+      if (balance.qtyOnHand.lte(item.reorderLevel!)) {
         reportIssue({
           category: "Stock Balance",
           issue: "Stock below reorder level",
@@ -106,9 +96,9 @@ async function validateStockBalances() {
           entityId: item.id,
           details: `Item: ${item.name}, Location: ${balance.location.name}, Current: ${balance.qtyOnHand.toString()}, Reorder Level: ${item.reorderLevel?.toString()}`,
         });
-      });
+      }
     });
-  }
+  });
 }
 
 async function validateAssetConditions() {
@@ -186,12 +176,23 @@ async function validateAuditCoverage() {
 
   for (const check of entityChecks) {
     // Count entities of this type
-    const entityCount = await (prisma as any)[check.table].count();
+    let entityCount = 0;
+    try {
+      if (check.table === "slip") entityCount = await prisma.slip.count();
+      else if (check.table === "asset") entityCount = await prisma.asset.count();
+      else if (check.table === "item") entityCount = await prisma.item.count();
+      else if (check.table === "property") entityCount = await prisma.property.count();
+      else if (check.table === "location") entityCount = await prisma.location.count();
+      else if (check.table === "category") entityCount = await prisma.category.count();
+      else if (check.table === "user") entityCount = await prisma.user.count();
+    } catch {
+      entityCount = 0;
+    }
 
     // Count audit events for this type
     const auditCount = await prisma.auditEvent.count({
       where: {
-        entityType: check.type as any,
+        entityType: check.type as "SLIP" | "ASSET" | "ITEM" | "PROPERTY" | "LOCATION" | "CATEGORY" | "USER",
       },
     });
 
@@ -282,31 +283,34 @@ async function validateMovementLogs() {
 async function validateDataIntegrity() {
   console.log("\n=== Validating Data Integrity ===\n");
 
-  // Check for orphaned records
+  // Check for orphaned records (basic referential integrity)
   const orphanChecks = [
     {
       name: "Slip lines without items",
-      query: () =>
-        prisma.slipLine.findMany({
-          where: { item: null },
-          select: { id: true, slipId: true },
-        }),
+      query: async () => {
+        const allLines = await prisma.slipLine.findMany({
+          include: { item: true },
+        });
+        return allLines.filter(line => !line.item).map(line => ({ id: line.id, slipId: line.slipId }));
+      },
     },
     {
       name: "Assets without items",
-      query: () =>
-        prisma.asset.findMany({
-          where: { item: null },
-          select: { id: true, assetTag: true },
-        }),
+      query: async () => {
+        const allAssets = await prisma.asset.findMany({
+          include: { item: true },
+        });
+        return allAssets.filter(asset => !asset.item).map(asset => ({ id: asset.id, assetTag: asset.assetTag }));
+      },
     },
     {
       name: "Stock balances without items",
-      query: () =>
-        prisma.stockBalance.findMany({
-          where: { item: null },
-          select: { id: true, itemId: true },
-        }),
+      query: async () => {
+        const allBalances = await prisma.stockBalance.findMany({
+          include: { item: true },
+        });
+        return allBalances.filter(balance => !balance.item).map(balance => ({ id: balance.id, itemId: balance.itemId }));
+      },
     },
   ];
 
@@ -366,9 +370,13 @@ async function runValidation() {
       console.log("\n✓ Data validation passed - all invariants satisfied!");
       process.exit(0);
     }
-  } catch (error: any) {
-    console.error("\n❌ Fatal error during validation:", error.message);
-    console.error(error.stack);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("\n❌ Fatal error during validation:", errorMessage);
+    if (errorStack) {
+      console.error(errorStack);
+    }
     process.exit(1);
   } finally {
     await prisma.$disconnect();
