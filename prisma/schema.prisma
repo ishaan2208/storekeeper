@@ -90,21 +90,21 @@ enum EntityType {
 }
 
 model User {
-    id                      String              @id @default(cuid())
-    name                    String
-    phone                   String?
-    role                    Role
-    requestedSlips          Slip[]              @relation("SlipRequestedBy")
-    issuedSlips             Slip[]              @relation("SlipIssuedBy")
-    receivedSlips           Slip[]              @relation("SlipReceivedBy")
-    signedSignatures        Signature[]
-    createdTickets          MaintenanceTicket[] @relation("TicketCreatedBy")
-    maintenanceLogs         MaintenanceLog[]
-    createdAuditEvents      AuditEvent[]
-    createdAt               DateTime            @default(now())
-    updatedAt               DateTime            @updatedAt
-    damageReports           DamageReport[]      @relation("DamageReportReportedBy")
-    approvedDamageReports   DamageReport[]      @relation("DamageReportApprovedBy")
+    id                    String              @id @default(cuid())
+    name                  String
+    phone                 String?
+    role                  Role
+    requestedSlips        Slip[]              @relation("SlipRequestedBy")
+    issuedSlips           Slip[]              @relation("SlipIssuedBy")
+    receivedSlips         Slip[]              @relation("SlipReceivedBy")
+    signedSignatures      Signature[]
+    createdTickets        MaintenanceTicket[] @relation("TicketCreatedBy")
+    maintenanceLogs       MaintenanceLog[]
+    createdAuditEvents    AuditEvent[]
+    createdAt             DateTime            @default(now())
+    updatedAt             DateTime            @updatedAt
+    damageReports         DamageReport[]      @relation("DamageReportReportedBy")
+    approvedDamageReports DamageReport[]      @relation("DamageReportApprovedBy")
 }
 
 model Property {
@@ -288,17 +288,17 @@ model MaintenanceLog {
 }
 
 model Vendor {
-    id                  String              @id @default(cuid())
-    name                String              @unique
-    contactPerson       String?
-    phone               String?
-    email               String?
-    address             String?
-    specialization      String?
-    isActive            Boolean             @default(true)
-    maintenanceTickets  MaintenanceTicket[]
-    createdAt           DateTime            @default(now())
-    updatedAt           DateTime            @updatedAt
+    id                 String              @id @default(cuid())
+    name               String              @unique
+    contactPerson      String?
+    phone              String?
+    email              String?
+    address            String?
+    specialization     String?
+    isActive           Boolean             @default(true)
+    maintenanceTickets MaintenanceTicket[]
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
 }
 
 model MovementLog {

@@ -62,57 +62,57 @@ export default async function DamageScrapReportPage({
     reportType === "scrap"
       ? Promise.resolve([])
       : prisma.damageReport.findMany({
-          where: {
-            ...(startDate && {
-              createdAt: { gte: new Date(`${startDate}T00:00:00`) },
-            }),
-            ...(endDate && {
-              createdAt: { lte: new Date(`${endDate}T23:59:59`) },
-            }),
-            ...(approved === "true" && { approvedAt: { not: null } }),
-            ...(approved === "false" && { approvedAt: null }),
-          },
-          include: {
-            item: { select: { name: true, itemType: true } },
-            asset: {
-              select: {
-                assetTag: true,
-                currentLocation: {
-                  select: { name: true, propertyId: true },
-                },
+        where: {
+          ...(startDate && {
+            createdAt: { gte: new Date(`${startDate}T00:00:00`) },
+          }),
+          ...(endDate && {
+            createdAt: { lte: new Date(`${endDate}T23:59:59`) },
+          }),
+          ...(approved === "true" && { approvedAt: { not: null } }),
+          ...(approved === "false" && { approvedAt: null }),
+        },
+        include: {
+          item: { select: { name: true, itemType: true } },
+          asset: {
+            select: {
+              assetTag: true,
+              currentLocation: {
+                select: { name: true, propertyId: true },
               },
             },
-            reportedBy: { select: { name: true } },
           },
-          orderBy: { createdAt: "desc" },
-          take: 500,
-        });
+          reportedBy: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+      });
 
   // Fetch scrap movements
   const scrapMovementsPromise =
     reportType === "damage"
       ? Promise.resolve([])
       : prisma.movementLog.findMany({
-          where: {
-            movementType: MovementType.SCRAP_OUT,
-            ...(startDate && {
-              movedAt: { gte: new Date(`${startDate}T00:00:00`) },
-            }),
-            ...(endDate && {
-              movedAt: { lte: new Date(`${endDate}T23:59:59`) },
-            }),
-            ...(locationId && { fromLocationId: locationId }),
+        where: {
+          movementType: MovementType.SCRAP_OUT,
+          ...(startDate && {
+            movedAt: { gte: new Date(`${startDate}T00:00:00`) },
+          }),
+          ...(endDate && {
+            movedAt: { lte: new Date(`${endDate}T23:59:59`) },
+          }),
+          ...(locationId && { fromLocationId: locationId }),
+        },
+        include: {
+          item: { select: { name: true, itemType: true } },
+          asset: { select: { assetTag: true } },
+          fromLocation: {
+            select: { name: true, propertyId: true },
           },
-          include: {
-            item: { select: { name: true, itemType: true } },
-            asset: { select: { assetTag: true } },
-            fromLocation: {
-              select: { name: true, propertyId: true },
-            },
-          },
-          orderBy: { movedAt: "desc" },
-          take: 500,
-        });
+        },
+        orderBy: { movedAt: "desc" },
+        take: 500,
+      });
 
   const [damageReports, scrapMovements, properties, locations] = await Promise.all([
     damageReportsPromise,

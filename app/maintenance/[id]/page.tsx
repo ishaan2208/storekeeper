@@ -142,10 +142,10 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
             <span className="font-medium">Status:</span>
             <span
               className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${ticket.status === MaintenanceStatus.CLOSED
-                  ? "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                  : ticket.status === MaintenanceStatus.FIXED
-                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                ? "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                : ticket.status === MaintenanceStatus.FIXED
+                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                 }`}
             >
               {ticket.status.replace(/_/g, " ")}

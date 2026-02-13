@@ -57,10 +57,10 @@ export default async function IssuesReportPage({
           movedAt: { lte: new Date(`${endDate}T23:59:59`) },
         }),
         ...(locationId && { fromLocationId: locationId }),
-        ...(itemType && { 
-          item: { 
-            itemType: itemType === "ASSET" ? "ASSET" : "STOCK" 
-          } 
+        ...(itemType && {
+          item: {
+            itemType: itemType === "ASSET" ? "ASSET" : "STOCK"
+          }
         }),
         ...(department && {
           slip: { department },
