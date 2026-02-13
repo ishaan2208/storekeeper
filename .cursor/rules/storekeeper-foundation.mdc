@@ -1,0 +1,33 @@
+---
+description: Storekeeper domain rules, data model boundaries, and implementation order
+alwaysApply: false
+---
+
+# Storekeeper Product Rules
+
+Use this project as an internal inventory + maintenance tracker (not full ERP).
+
+## Domain Mental Model
+
+- Items are either `ASSET` (individually tracked) or `STOCK` (quantity tracked).
+- Every operation should produce movement entries (`ISSUE_OUT`, `RETURN_IN`, `TRANSFER`, `MAINT_OUT`, `MAINT_IN`, `ADJUSTMENT`, `SCRAP_OUT`).
+- Critical records are append-only from an audit perspective.
+
+## Invariants
+
+- Do not allow stock to go negative except explicit admin adjustment.
+- Do not issue assets with condition `SCRAP` or `UNDER_MAINTENANCE`.
+- Avoid hard deletes for slips, movement logs, maintenance tickets, and audit events.
+- If an update would change history, prefer a correction record and an `AuditEvent`.
+
+## Build Phases
+
+1. Foundation (Prisma models + auth-ready user model + masters)
+2. Slips (`ISSUE`, `RETURN` first) with signature capture
+3. Maintenance lifecycle + logs
+4. Reports + full audit coverage
+5. Printable slips + mobile flow polish
+
+## File Reference
+
+Primary schema is in [prisma/schema.prisma](mdc:prisma/schema.prisma).

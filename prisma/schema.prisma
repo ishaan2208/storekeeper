@@ -1,0 +1,353 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Role {
+    ADMIN
+    STORE_MANAGER
+    DEPARTMENT_USER
+    TECHNICIAN
+}
+
+enum DepartmentType {
+    KITCHEN
+    ELECTRICAL
+    HOUSEKEEPING
+    FRONT_OFFICE
+    OTHER
+}
+
+enum ItemType {
+    ASSET
+    STOCK
+}
+
+enum Condition {
+    NEW
+    GOOD
+    WORN
+    DAMAGED
+    UNDER_MAINTENANCE
+    SCRAP
+}
+
+enum MovementType {
+    ISSUE_OUT
+    RETURN_IN
+    TRANSFER
+    MAINT_OUT
+    MAINT_IN
+    ADJUSTMENT
+    SCRAP_OUT
+}
+
+enum SlipType {
+    ISSUE
+    RETURN
+    TRANSFER
+    MAINT
+}
+
+enum SignatureMethod {
+    TYPED
+    DRAWN
+    OTP
+}
+
+enum MaintenanceStatus {
+    REPORTED
+    DIAGNOSING
+    SENT_TO_VENDOR
+    IN_REPAIR
+    FIXED
+    CLOSED
+    UNREPAIRABLE
+    SCRAPPED
+}
+
+enum AuditAction {
+    CREATE
+    UPDATE
+    DELETE
+    CORRECT
+}
+
+enum EntityType {
+    SLIP
+    ASSET
+    ITEM
+    TICKET
+    PROPERTY
+    LOCATION
+    CATEGORY
+    USER
+    DAMAGE_REPORT
+}
+
+model User {
+    id                      String              @id @default(cuid())
+    name                    String
+    phone                   String?
+    role                    Role
+    requestedSlips          Slip[]              @relation("SlipRequestedBy")
+    issuedSlips             Slip[]              @relation("SlipIssuedBy")
+    receivedSlips           Slip[]              @relation("SlipReceivedBy")
+    signedSignatures        Signature[]
+    createdTickets          MaintenanceTicket[] @relation("TicketCreatedBy")
+    maintenanceLogs         MaintenanceLog[]
+    createdAuditEvents      AuditEvent[]
+    createdAt               DateTime            @default(now())
+    updatedAt               DateTime            @updatedAt
+    damageReports           DamageReport[]      @relation("DamageReportReportedBy")
+    approvedDamageReports   DamageReport[]      @relation("DamageReportApprovedBy")
+}
+
+model Property {
+    id        String     @id @default(cuid())
+    name      String     @unique
+    locations Location[]
+    slips     Slip[]
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+}
+
+model Location {
+    id               String         @id @default(cuid())
+    propertyId       String
+    property         Property       @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+    name             String
+    floor            String?
+    room             String?
+    area             String?
+    assets           Asset[]
+    stockBalances    StockBalance[]
+    fromSlips        Slip[]         @relation("SlipFromLocation")
+    toSlips          Slip[]         @relation("SlipToLocation")
+    movementLogsFrom MovementLog[]  @relation("MovementFromLocation")
+    movementLogsTo   MovementLog[]  @relation("MovementToLocation")
+    createdAt        DateTime       @default(now())
+    updatedAt        DateTime       @updatedAt
+
+    @@unique([propertyId, name])
+}
+
+model Category {
+    id               String     @id @default(cuid())
+    name             String
+    parentCategoryId String?
+    parentCategory   Category?  @relation("CategoryTree", fields: [parentCategoryId], references: [id], onDelete: Restrict)
+    children         Category[] @relation("CategoryTree")
+    items            Item[]
+    createdAt        DateTime   @default(now())
+    updatedAt        DateTime   @updatedAt
+
+    @@unique([name, parentCategoryId])
+}
+
+model Item {
+    id            String         @id @default(cuid())
+    name          String
+    itemType      ItemType
+    categoryId    String
+    category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+    unit          String?
+    reorderLevel  Decimal?       @db.Decimal(12, 2)
+    isActive      Boolean        @default(true)
+    assets        Asset[]
+    stockBalances StockBalance[]
+    slipLines     SlipLine[]
+    movementLogs  MovementLog[]
+    damageReports DamageReport[]
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+
+    @@unique([name, categoryId])
+}
+
+model Asset {
+    id                 String              @id @default(cuid())
+    itemId             String
+    item               Item                @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    assetTag           String              @unique
+    serialNumber       String?
+    purchaseDate       DateTime?
+    warrantyUntil      DateTime?
+    condition          Condition           @default(NEW)
+    currentLocationId  String?
+    currentLocation    Location?           @relation(fields: [currentLocationId], references: [id], onDelete: SetNull)
+    notes              String?
+    slipLines          SlipLine[]
+    maintenanceTickets MaintenanceTicket[]
+    movementLogs       MovementLog[]
+    damageReports      DamageReport[]
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
+}
+
+model StockBalance {
+    id         String   @id @default(cuid())
+    itemId     String
+    item       Item     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    locationId String
+    location   Location @relation(fields: [locationId], references: [id], onDelete: Restrict)
+    qtyOnHand  Decimal  @default(0) @db.Decimal(12, 2)
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
+
+    @@unique([itemId, locationId])
+}
+
+model Slip {
+    id             String         @id @default(cuid())
+    slipNo         String         @unique
+    slipType       SlipType
+    propertyId     String
+    property       Property       @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+    fromLocationId String?
+    fromLocation   Location?      @relation("SlipFromLocation", fields: [fromLocationId], references: [id], onDelete: Restrict)
+    toLocationId   String?
+    toLocation     Location?      @relation("SlipToLocation", fields: [toLocationId], references: [id], onDelete: Restrict)
+    department     DepartmentType
+    requestedById  String?
+    requestedBy    User?          @relation("SlipRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+    issuedById     String?
+    issuedBy       User?          @relation("SlipIssuedBy", fields: [issuedById], references: [id], onDelete: Restrict)
+    receivedById   String?
+    receivedBy     User?          @relation("SlipReceivedBy", fields: [receivedById], references: [id], onDelete: Restrict)
+    sourceSlipId   String?
+    sourceSlip     Slip?          @relation("SlipReturnLink", fields: [sourceSlipId], references: [id], onDelete: Restrict)
+    returnSlips    Slip[]         @relation("SlipReturnLink")
+    lines          SlipLine[]
+    signatures     Signature[]
+    movementLogs   MovementLog[]
+    createdAt      DateTime       @default(now())
+    updatedAt      DateTime       @updatedAt
+}
+
+model SlipLine {
+    id              String     @id @default(cuid())
+    slipId          String
+    slip            Slip       @relation(fields: [slipId], references: [id], onDelete: Restrict)
+    itemId          String
+    item            Item       @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    assetId         String?
+    asset           Asset?     @relation(fields: [assetId], references: [id], onDelete: Restrict)
+    qty             Decimal?   @db.Decimal(12, 2)
+    conditionAtMove Condition?
+    notes           String?
+    createdAt       DateTime   @default(now())
+    updatedAt       DateTime   @updatedAt
+}
+
+model Signature {
+    id             String          @id @default(cuid())
+    slipId         String
+    slip           Slip            @relation(fields: [slipId], references: [id], onDelete: Restrict)
+    signedByName   String
+    signedByUserId String?
+    signedByUser   User?           @relation(fields: [signedByUserId], references: [id], onDelete: Restrict)
+    method         SignatureMethod @default(TYPED)
+    signedAt       DateTime        @default(now())
+    createdAt      DateTime        @default(now())
+}
+
+model MaintenanceTicket {
+    id            String            @id @default(cuid())
+    assetId       String
+    asset         Asset             @relation(fields: [assetId], references: [id], onDelete: Restrict)
+    status        MaintenanceStatus @default(REPORTED)
+    problemText   String
+    vendorId      String?
+    vendor        Vendor?           @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+    vendorName    String?
+    estimatedCost Decimal?          @db.Decimal(12, 2)
+    actualCost    Decimal?          @db.Decimal(12, 2)
+    openedAt      DateTime          @default(now())
+    closedAt      DateTime?
+    createdById   String
+    createdBy     User              @relation("TicketCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+    logs          MaintenanceLog[]
+    createdAt     DateTime          @default(now())
+    updatedAt     DateTime          @updatedAt
+}
+
+model MaintenanceLog {
+    id          String            @id @default(cuid())
+    ticketId    String
+    ticket      MaintenanceTicket @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+    status      MaintenanceStatus
+    note        String?
+    createdById String
+    createdBy   User              @relation(fields: [createdById], references: [id], onDelete: Restrict)
+    createdAt   DateTime          @default(now())
+}
+
+model Vendor {
+    id                  String              @id @default(cuid())
+    name                String              @unique
+    contactPerson       String?
+    phone               String?
+    email               String?
+    address             String?
+    specialization      String?
+    isActive            Boolean             @default(true)
+    maintenanceTickets  MaintenanceTicket[]
+    createdAt           DateTime            @default(now())
+    updatedAt           DateTime            @updatedAt
+}
+
+model MovementLog {
+    id             String       @id @default(cuid())
+    movementType   MovementType
+    itemId         String
+    item           Item         @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    assetId        String?
+    asset          Asset?       @relation(fields: [assetId], references: [id], onDelete: Restrict)
+    qty            Decimal?     @db.Decimal(12, 2)
+    slipId         String?
+    slip           Slip?        @relation(fields: [slipId], references: [id], onDelete: Restrict)
+    fromLocationId String?
+    fromLocation   Location?    @relation("MovementFromLocation", fields: [fromLocationId], references: [id], onDelete: Restrict)
+    toLocationId   String?
+    toLocation     Location?    @relation("MovementToLocation", fields: [toLocationId], references: [id], onDelete: Restrict)
+    condition      Condition?
+    note           String?
+    movedAt        DateTime     @default(now())
+    createdAt      DateTime     @default(now())
+}
+
+model DamageReport {
+    id               String    @id @default(cuid())
+    itemId           String
+    item             Item      @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    assetId          String?
+    asset            Asset?    @relation(fields: [assetId], references: [id], onDelete: Restrict)
+    reportedById     String?
+    reportedBy       User?     @relation("DamageReportReportedBy", fields: [reportedById], references: [id], onDelete: Restrict)
+    description      String
+    condition        Condition @default(DAMAGED)
+    requiresApproval Boolean   @default(true)
+    approvedById     String?
+    approvedBy       User?     @relation("DamageReportApprovedBy", fields: [approvedById], references: [id], onDelete: Restrict)
+    approvedAt       DateTime?
+    createdAt        DateTime  @default(now())
+}
+
+model AuditEvent {
+    id          String      @id @default(cuid())
+    entityType  EntityType
+    entityId    String
+    action      AuditAction
+    oldValue    Json?
+    newValue    Json?
+    createdById String?
+    createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+    createdAt   DateTime    @default(now())
+
+    @@index([entityType, entityId, createdAt])
+}
