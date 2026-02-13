@@ -17,6 +17,9 @@ CREATE TABLE "Vendor" (
 -- AlterTable: Add sourceSlipId to Slip for return linking
 ALTER TABLE "Slip" ADD COLUMN "sourceSlipId" TEXT;
 
+-- AlterTable: Add vendorId to Slip for receive slips
+ALTER TABLE "Slip" ADD COLUMN "vendorId" TEXT;
+
 -- AlterTable: Add vendorId to MaintenanceTicket
 ALTER TABLE "MaintenanceTicket" ADD COLUMN "vendorId" TEXT;
 
@@ -33,6 +36,11 @@ CREATE UNIQUE INDEX "Vendor_name_key" ON "Vendor"("name");
 ALTER TABLE "Slip" 
 ADD CONSTRAINT "Slip_sourceSlipId_fkey" 
 FOREIGN KEY ("sourceSlipId") REFERENCES "Slip"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Slip" 
+ADD CONSTRAINT "Slip_vendorId_fkey" 
+FOREIGN KEY ("vendorId") REFERENCES "Vendor"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MaintenanceTicket" 
