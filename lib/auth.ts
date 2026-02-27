@@ -70,6 +70,9 @@ export async function verifySessionToken(token: string): Promise<SessionUser | n
     if (typeof sub !== "string" || typeof name !== "string" || typeof role !== "string") {
       return null;
     }
+    if (sub.trim().length === 0) {
+      return null;
+    }
 
     if (!ROLE_VALUES.includes(role as Role)) {
       return null;

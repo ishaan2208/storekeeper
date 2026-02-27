@@ -1,9 +1,34 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { FolderTree, Plus, Edit, Trash2, X, ChevronRight } from "lucide-react";
 
 import { createCategory, updateCategory, deleteCategory } from "@/lib/actions/masters/categories";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineError } from "@/components/ui/inline-error";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CategoriesPageProps = {
   searchParams?: Promise<{ edit?: string; error?: string; success?: string }>;
@@ -74,143 +99,148 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Categories</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Organize items with hierarchical categories.
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Home
-        </Link>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Categories"
+        description="Organize items with hierarchical categories."
+        icon={<FolderTree className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/masters">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back to Masters
+            </Link>
+          </Button>
+        }
+      />
 
       {params?.error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {params.error}
-        </div>
+        <InlineError message={params.error} />
       )}
 
       {params?.success && (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-          {params.success}
-        </div>
+        <Alert>
+          <AlertDescription>{params.success}</AlertDescription>
+        </Alert>
       )}
 
-      <section className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-medium">
+      <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">
           {editingCategory ? "Edit Category" : "Add New Category"}
         </h2>
         <form action={editingCategory ? handleUpdate : handleCreate} className="space-y-4">
           {editingCategory && <input type="hidden" name="id" value={editingCategory.id} />}
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">Category Name*</span>
-            <input
-              type="text"
+          <div className="space-y-2">
+            <Label htmlFor="name">Category Name*</Label>
+            <Input
+              id="name"
               name="name"
               defaultValue={editingCategory?.name ?? ""}
-              className="w-full rounded border px-3 py-2"
               required
               placeholder="e.g., Electronics, Furniture, Consumables"
             />
-          </label>
+          </div>
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">Parent Category</span>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="parentCategoryId">Parent Category</Label>
+            <Select
               name="parentCategoryId"
               defaultValue={editingCategory?.parentCategoryId ?? ""}
-              className="w-full rounded border px-3 py-2"
             >
-              <option value="">None (Top Level)</option>
-              {categories
-                .filter((cat) => cat.id !== editingId)
-                .map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-            </select>
-          </label>
+              <SelectTrigger id="parentCategoryId">
+                <SelectValue placeholder="None (Top Level)" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories
+                  .filter((cat) => cat.id !== editingId)
+                  .map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
-              {editingCategory ? "Update Category" : "Create Category"}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              {editingCategory ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Update Category
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Category
+                </>
+              )}
+            </Button>
             {editingCategory && (
-              <Link
-                href="/masters/categories"
-                className="rounded border px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/masters/categories">
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Link>
+              </Button>
             )}
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {categories.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No categories found. Create one to get started.
-          </div>
+          <EmptyState
+            icon={<FolderTree className="h-8 w-8" />}
+            title="No categories yet"
+            description="Create your first category to organize your inventory items."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Name</th>
-                  <th className="border-b px-3 py-2">Parent Category</th>
-                  <th className="border-b px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Parent Category</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {categories.map((category) => (
-                  <tr key={category.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                    <td className="border-b px-3 py-2 font-medium">{category.name}</td>
-                    <td className="border-b px-3 py-2">
+                  <TableRow key={category.id}>
+                    <TableCell className="font-medium">{category.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
                       {category.parentCategory?.name ?? "None (Top Level)"}
-                    </td>
-                    <td className="border-b px-3 py-2">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/masters/categories?edit=${category.id}`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/masters/categories?edit=${category.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <ConfirmActionForm
+                          action={handleDelete}
+                          confirmMessage="Are you sure you want to delete this category?"
+                          fields={{ id: category.id }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
                         >
-                          Edit
-                        </Link>
-                        <form action={handleDelete} className="inline">
-                          <input type="hidden" name="id" value={category.id} />
-                          <button
-                            type="submit"
-                            className="text-red-600 hover:underline dark:text-red-400"
-                            onClick={(e) => {
-                              if (!confirm("Are you sure you want to delete this category?")) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ConfirmActionForm>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

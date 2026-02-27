@@ -1,9 +1,27 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Building, Plus, Edit, Trash2, X, ChevronRight } from "lucide-react";
 
 import { createProperty, updateProperty, deleteProperty } from "@/lib/actions/masters/properties";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineError } from "@/components/ui/inline-error";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type PropertiesPageProps = {
   searchParams?: Promise<{ edit?: string; error?: string; success?: string }>;
@@ -69,125 +87,125 @@ export default async function PropertiesPage({ searchParams }: PropertiesPagePro
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Properties</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Manage property locations for your organization.
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Home
-        </Link>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Properties"
+        description="Manage property locations for your organization."
+        icon={<Building className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/masters">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back to Masters
+            </Link>
+          </Button>
+        }
+      />
 
-      {params?.error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {params.error}
-        </div>
-      )}
+      {params?.error && <InlineError message={params.error} />}
 
       {params?.success && (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-          {params.success}
-        </div>
+        <Alert>
+          <AlertDescription>{params.success}</AlertDescription>
+        </Alert>
       )}
 
-      <section className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-medium">
+      <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">
           {editingProperty ? "Edit Property" : "Add New Property"}
         </h2>
         <form action={editingProperty ? handleUpdate : handleCreate} className="space-y-4">
           {editingProperty && <input type="hidden" name="id" value={editingProperty.id} />}
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">Property Name*</span>
-            <input
-              type="text"
+          <div className="space-y-2">
+            <Label htmlFor="name">Property Name*</Label>
+            <Input
+              id="name"
               name="name"
               defaultValue={editingProperty?.name ?? ""}
-              className="w-full rounded border px-3 py-2"
               required
               placeholder="e.g., Main Hotel, Beach Resort"
             />
-          </label>
+          </div>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
-              {editingProperty ? "Update Property" : "Create Property"}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              {editingProperty ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Update Property
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Property
+                </>
+              )}
+            </Button>
             {editingProperty && (
-              <Link
-                href="/masters/properties"
-                className="rounded border px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/masters/properties">
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Link>
+              </Button>
             )}
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {properties.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No properties found. Create one to get started.
-          </div>
+          <EmptyState
+            icon={<Building className="h-8 w-8" />}
+            title="No properties yet"
+            description="Create your first property to get started with inventory management."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Name</th>
-                  <th className="border-b px-3 py-2">Created</th>
-                  <th className="border-b px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {properties.map((property) => (
-                  <tr key={property.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                    <td className="border-b px-3 py-2 font-medium">{property.name}</td>
-                    <td className="border-b px-3 py-2">
+                  <TableRow key={property.id}>
+                    <TableCell className="font-medium">{property.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
                       {new Date(property.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="border-b px-3 py-2">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/masters/properties?edit=${property.id}`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/masters/properties?edit=${property.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <ConfirmActionForm
+                          action={handleDelete}
+                          confirmMessage="Are you sure you want to delete this property?"
+                          fields={{ id: property.id }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
                         >
-                          Edit
-                        </Link>
-                        <form action={handleDelete} className="inline">
-                          <input type="hidden" name="id" value={property.id} />
-                          <button
-                            type="submit"
-                            className="text-red-600 hover:underline dark:text-red-400"
-                            onClick={(e) => {
-                              if (!confirm("Are you sure you want to delete this property?")) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ConfirmActionForm>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

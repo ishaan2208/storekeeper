@@ -1,12 +1,38 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { Users as UsersIcon, Plus, Edit, Trash2, X, ChevronRight, Phone, Shield } from "lucide-react";
 import { Role } from "@prisma/client";
 
 import { createUser, updateUser, deleteUser } from "@/lib/actions/masters/users";
 import { prisma } from "@/lib/prisma";
 import { requireSessionOrThrow } from "@/lib/auth-server";
 import { assertPermission, canManageUsers } from "@/lib/permissions";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineError } from "@/components/ui/inline-error";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type UsersPageProps = {
   searchParams?: Promise<{ edit?: string; error?: string; success?: string }>;
@@ -18,6 +44,13 @@ function messageFromError(error: unknown): string {
   }
   return "Operation failed.";
 }
+
+const roleDescriptions = {
+  [Role.ADMIN]: "Full system access",
+  [Role.STORE_MANAGER]: "Manage inventory",
+  [Role.DEPARTMENT_USER]: "Request items",
+  [Role.TECHNICIAN]: "Maintenance tasks",
+};
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const session = await requireSessionOrThrow();
@@ -79,155 +112,175 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Users</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Manage system users and their roles (Admin only).
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Home
-        </Link>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Users"
+        description="Manage system users and their roles (Admin only)."
+        icon={<UsersIcon className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back to Home
+            </Link>
+          </Button>
+        }
+      />
 
-      {params?.error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {params.error}
-        </div>
-      )}
+      {params?.error && <InlineError message={params.error} />}
 
       {params?.success && (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-          {params.success}
-        </div>
+        <Alert>
+          <AlertDescription>{params.success}</AlertDescription>
+        </Alert>
       )}
 
-      <section className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-medium">{editingUser ? "Edit User" : "Add New User"}</h2>
+      <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">
+          {editingUser ? "Edit User" : "Add New User"}
+        </h2>
         <form action={editingUser ? handleUpdate : handleCreate} className="space-y-4">
           {editingUser && <input type="hidden" name="id" value={editingUser.id} />}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Name*</span>
-              <input
-                type="text"
+            <div className="space-y-2">
+              <Label htmlFor="name">Name*</Label>
+              <Input
+                id="name"
                 name="name"
                 defaultValue={editingUser?.name ?? ""}
-                className="w-full rounded border px-3 py-2"
                 required
                 placeholder="Full name"
               />
-            </label>
+            </div>
 
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Phone</span>
-              <input
-                type="tel"
+            <div className="space-y-2">
+              <Label htmlFor="phone">
+                <Phone className="mr-1 inline-block h-4 w-4" />
+                Phone
+              </Label>
+              <Input
+                id="phone"
                 name="phone"
+                type="tel"
                 defaultValue={editingUser?.phone ?? ""}
-                className="w-full rounded border px-3 py-2"
                 placeholder="Contact number"
               />
-            </label>
+            </div>
           </div>
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">Role*</span>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="role">
+              <Shield className="mr-1 inline-block h-4 w-4" />
+              Role*
+            </Label>
+            <Select
               name="role"
               defaultValue={editingUser?.role ?? Role.DEPARTMENT_USER}
-              className="w-full rounded border px-3 py-2"
               required
             >
-              <option value={Role.ADMIN}>ADMIN</option>
-              <option value={Role.STORE_MANAGER}>STORE_MANAGER</option>
-              <option value={Role.DEPARTMENT_USER}>DEPARTMENT_USER</option>
-              <option value={Role.TECHNICIAN}>TECHNICIAN</option>
-            </select>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              ADMIN: Full access | STORE_MANAGER: Manage inventory | DEPARTMENT_USER: Request items | TECHNICIAN: Maintenance
+              <SelectTrigger id="role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(Role).map((role) => (
+                  <SelectItem key={role} value={role}>
+                    {role} - {roleDescriptions[role]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose the appropriate role based on user responsibilities
             </p>
-          </label>
+          </div>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
-              {editingUser ? "Update User" : "Create User"}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              {editingUser ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Update User
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create User
+                </>
+              )}
+            </Button>
             {editingUser && (
-              <Link href="/users" className="rounded border px-4 py-2 text-sm font-medium">
-                Cancel
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/users">
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Link>
+              </Button>
             )}
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {users.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No users found. Create one to get started.
-          </div>
+          <EmptyState
+            icon={<UsersIcon className="h-8 w-8" />}
+            title="No users yet"
+            description="Create your first user to get started with the system."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Name</th>
-                  <th className="border-b px-3 py-2">Phone</th>
-                  <th className="border-b px-3 py-2">Role</th>
-                  <th className="border-b px-3 py-2">Created</th>
-                  <th className="border-b px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                    <td className="border-b px-3 py-2 font-medium">{user.name}</td>
-                    <td className="border-b px-3 py-2">{user.phone ?? "-"}</td>
-                    <td className="border-b px-3 py-2">{user.role}</td>
-                    <td className="border-b px-3 py-2">
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.phone ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={user.role} variant="secondary" />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="border-b px-3 py-2">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/users?edit=${user.id}`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/users?edit=${user.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <ConfirmActionForm
+                          action={handleDelete}
+                          confirmMessage="Are you sure you want to delete this user?"
+                          fields={{ id: user.id }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
                         >
-                          Edit
-                        </Link>
-                        <form action={handleDelete} className="inline">
-                          <input type="hidden" name="id" value={user.id} />
-                          <button
-                            type="submit"
-                            className="text-red-600 hover:underline dark:text-red-400"
-                            onClick={(e) => {
-                              if (!confirm("Are you sure you want to delete this user?")) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ConfirmActionForm>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

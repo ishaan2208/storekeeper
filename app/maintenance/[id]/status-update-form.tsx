@@ -3,8 +3,22 @@
 import { MaintenanceStatus } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { TrendingUp, DollarSign } from "lucide-react";
 
 import { updateMaintenanceStatus } from "@/lib/actions/maintenance";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { InlineError } from "@/components/ui/inline-error";
+import { SubmitButton } from "@/components/ui/submit-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type StatusUpdateFormProps = {
   ticketId: string;
@@ -68,62 +82,65 @@ export function StatusUpdateForm({ ticketId, currentStatus }: StatusUpdateFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      {error && <InlineError message={error} />}
 
-      <label className="block space-y-1 text-sm">
-        <span className="font-medium">
-          New Status <span className="text-red-600">*</span>
-        </span>
-        <select
+      <div className="space-y-2">
+        <Label htmlFor="status">
+          New Status <span className="text-destructive">*</span>
+        </Label>
+        <Select
           value={formData.status}
-          onChange={(e) =>
-            setFormData({ ...formData, status: e.target.value as MaintenanceStatus })
+          onValueChange={(value) =>
+            setFormData({ ...formData, status: value as MaintenanceStatus })
           }
           required
-          className="w-full rounded border px-3 py-2"
         >
-          {statusOptions.map((status) => (
-            <option key={status} value={status}>
-              {status.replace(/_/g, " ")}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger id="status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status.replace(/_/g, " ")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <label className="block space-y-1 text-sm">
-        <span className="font-medium">Note (Optional)</span>
-        <textarea
+      <div className="space-y-2">
+        <Label htmlFor="note">Note (Optional)</Label>
+        <Textarea
+          id="note"
           value={formData.note}
           onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           maxLength={500}
           rows={3}
           placeholder="Add any notes about this status change..."
-          className="w-full rounded border px-3 py-2"
         />
-      </label>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <label className="block space-y-1 text-sm">
-          <span className="font-medium">Vendor Name (Optional)</span>
-          <input
-            type="text"
+        <div className="space-y-2">
+          <Label htmlFor="vendorName">Vendor Name</Label>
+          <Input
+            id="vendorName"
             value={formData.vendorName}
             onChange={(e) =>
               setFormData({ ...formData, vendorName: e.target.value })
             }
             maxLength={200}
             placeholder="e.g., ABC Repair"
-            className="w-full rounded border px-3 py-2"
           />
-        </label>
+        </div>
 
-        <label className="block space-y-1 text-sm">
-          <span className="font-medium">Estimated Cost (₹)</span>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="estimatedCost">
+            <DollarSign className="mr-1 inline-block h-4 w-4" />
+            Estimated Cost (₹)
+          </Label>
+          <Input
+            id="estimatedCost"
             type="number"
             value={formData.estimatedCost}
             onChange={(e) =>
@@ -132,13 +149,16 @@ export function StatusUpdateForm({ ticketId, currentStatus }: StatusUpdateFormPr
             min="0"
             step="0.01"
             placeholder="0.00"
-            className="w-full rounded border px-3 py-2"
           />
-        </label>
+        </div>
 
-        <label className="block space-y-1 text-sm">
-          <span className="font-medium">Actual Cost (₹)</span>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="actualCost">
+            <DollarSign className="mr-1 inline-block h-4 w-4" />
+            Actual Cost (₹)
+          </Label>
+          <Input
+            id="actualCost"
             type="number"
             value={formData.actualCost}
             onChange={(e) =>
@@ -147,18 +167,18 @@ export function StatusUpdateForm({ ticketId, currentStatus }: StatusUpdateFormPr
             min="0"
             step="0.01"
             placeholder="0.00"
-            className="w-full rounded border px-3 py-2"
           />
-        </label>
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading || formData.status === currentStatus}
-        className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+      <SubmitButton
+        isSubmitting={loading}
+        loadingText="Updating..."
+        disabled={formData.status === currentStatus}
       >
-        {loading ? "Updating..." : "Update Status"}
-      </button>
+        <TrendingUp className="mr-2 h-4 w-4" />
+        Update Status
+      </SubmitButton>
     </form>
   );
 }

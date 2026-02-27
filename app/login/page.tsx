@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { signSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { BackgroundBeams } from "@/components/ui/background-beams";
 
 type LoginPageProps = {
   searchParams?: Promise<{ next?: string; error?: string }>;
@@ -78,54 +79,74 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-6 py-12">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Use your phone number and the shared access code.
+    <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden">
+      <BackgroundBeams />
+      <div className="relative z-10 mx-auto w-full max-w-md space-y-6 px-6 py-12">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
+          <p className="text-sm text-muted-foreground">
+            Use your phone number and the shared access code.
+          </p>
+        </div>
+
+        {params?.error && (
+          <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive backdrop-blur-sm">
+            {params.error}
+          </div>
+        )}
+
+        <div className="rounded-lg border bg-card/80 backdrop-blur-sm p-8 shadow-lg">
+          <form action={loginAction} className="space-y-6">
+            <input type="hidden" name="next" value={nextPath} />
+
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium leading-none">
+                Phone
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                inputMode="numeric"
+                autoComplete="tel"
+                className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+                placeholder="9999999999"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="accessCode" className="text-sm font-medium leading-none">
+                Access code
+              </label>
+              <input
+                id="accessCode"
+                name="accessCode"
+                type="password"
+                autoComplete="one-time-code"
+                className="flex h-10 w-full rounded-md border border-input bg-background/50 backdrop-blur-sm px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+                placeholder="Enter access code"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Sign in
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Back to{" "}
+          <Link href="/" className="font-medium underline underline-offset-4 hover:text-primary transition-colors">
+            home
+          </Link>
+          .
         </p>
-      </header>
-
-      {params?.error ? (
-        <p className="rounded-md bg-red-100 px-3 py-2 text-sm text-red-900">
-          {params.error}
-        </p>
-      ) : null}
-
-      <form action={loginAction} className="rounded-xl border bg-white p-5 shadow-sm dark:bg-zinc-900">
-        <input type="hidden" name="next" value={nextPath} />
-
-        <label className="block text-sm font-medium">Phone</label>
-        <input
-          name="phone"
-          inputMode="numeric"
-          autoComplete="tel"
-          className="mt-1 w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-          placeholder="9999999999"
-          required
-        />
-
-        <label className="mt-4 block text-sm font-medium">Access code</label>
-        <input
-          name="accessCode"
-          type="password"
-          autoComplete="one-time-code"
-          className="mt-1 w-full rounded-md border bg-transparent px-3 py-2 text-sm"
-          required
-        />
-
-        <button
-          type="submit"
-          className="mt-5 w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-        >
-          Sign in
-        </button>
-      </form>
-
-      <p className="text-center text-xs text-zinc-600 dark:text-zinc-300">
-        Back to <Link href="/" className="underline">home</Link>.
-      </p>
-    </main>
+      </div>
+    </div>
   );
 }
 

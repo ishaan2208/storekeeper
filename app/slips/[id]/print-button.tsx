@@ -1,13 +1,19 @@
 "use client";
 
+import { Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 export function PrintButton() {
   return (
-    <button
+    <Button
       type="button"
       onClick={() => window.print()}
-      className="rounded border px-3 py-1 text-sm print:hidden"
+      variant="outline"
+      size="sm"
+      className="print:hidden"
     >
+      <Printer className="mr-2 h-4 w-4" />
       Print
-    </button>
+    </Button>
   );
 }

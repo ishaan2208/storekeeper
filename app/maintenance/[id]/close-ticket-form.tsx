@@ -3,8 +3,23 @@
 import { Condition } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CheckCircle2, DollarSign } from "lucide-react";
 
 import { closeTicket } from "@/lib/actions/maintenance";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { InlineError } from "@/components/ui/inline-error";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type CloseTicketFormProps = {
   ticketId: string;
@@ -47,33 +62,35 @@ export function CloseTicketForm({ ticketId }: CloseTicketFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      {error && <InlineError message={error} />}
 
-      <p className="text-sm text-zinc-600 dark:text-zinc-300">
-        Closing the ticket will create a MAINT_IN movement log and update the asset
-        condition and location.
-      </p>
+      <Alert>
+        <AlertDescription className="text-sm">
+          Closing the ticket will create a MAINT_IN movement log and update the asset
+          condition and location.
+        </AlertDescription>
+      </Alert>
 
-      <label className="block space-y-1 text-sm">
-        <span className="font-medium">Closing Note (Optional)</span>
-        <textarea
+      <div className="space-y-2">
+        <Label htmlFor="note">Closing Note (Optional)</Label>
+        <Textarea
+          id="note"
           value={formData.note}
           onChange={(e) => setFormData({ ...formData, note: e.target.value })}
           maxLength={500}
           rows={3}
           placeholder="Add any final notes about the resolution..."
-          className="w-full rounded border px-3 py-2"
         />
-      </label>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1 text-sm">
-          <span className="font-medium">Final Actual Cost (₹)</span>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="actualCost">
+            <DollarSign className="mr-1 inline-block h-4 w-4" />
+            Final Actual Cost (₹)
+          </Label>
+          <Input
+            id="actualCost"
             type="number"
             value={formData.actualCost}
             onChange={(e) =>
@@ -82,39 +99,42 @@ export function CloseTicketForm({ ticketId }: CloseTicketFormProps) {
             min="0"
             step="0.01"
             placeholder="0.00"
-            className="w-full rounded border px-3 py-2"
           />
-        </label>
+        </div>
 
-        <label className="block space-y-1 text-sm">
-          <span className="font-medium">Final Condition</span>
-          <select
+        <div className="space-y-2">
+          <Label htmlFor="finalCondition">Final Condition</Label>
+          <Select
             value={formData.finalCondition}
-            onChange={(e) =>
-              setFormData({ ...formData, finalCondition: e.target.value })
+            onValueChange={(value) =>
+              setFormData({ ...formData, finalCondition: value })
             }
-            className="w-full rounded border px-3 py-2"
           >
-            <option value="">Auto-determine from status</option>
-            {Object.values(Condition).map((condition) => (
-              <option key={condition} value={condition}>
-                {condition}
-              </option>
-            ))}
-          </select>
-          <span className="text-xs text-zinc-500">
+            <SelectTrigger id="finalCondition">
+              <SelectValue placeholder="Auto-determine from status" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(Condition).map((condition) => (
+                <SelectItem key={condition} value={condition}>
+                  {condition}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
             Leave blank to auto-determine: FIXED → GOOD, UNREPAIRABLE → DAMAGED
-          </span>
-        </label>
+          </p>
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-700 dark:hover:bg-red-800"
+      <SubmitButton
+        isSubmitting={loading}
+        loadingText="Closing..."
+        variant="destructive"
       >
-        {loading ? "Closing..." : "Close Ticket"}
-      </button>
+        <CheckCircle2 className="mr-2 h-4 w-4" />
+        Close Ticket
+      </SubmitButton>
     </form>
   );
 }

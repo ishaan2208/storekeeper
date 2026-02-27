@@ -1,10 +1,36 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { List, Plus, Edit, Trash2, X, ChevronRight } from "lucide-react";
 import { ItemType } from "@prisma/client";
 
 import { createItem, updateItem, deleteItem } from "@/lib/actions/masters/items";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineError } from "@/components/ui/inline-error";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ItemsPageProps = {
   searchParams?: Promise<{ edit?: string; error?: string; success?: string }>;
@@ -84,209 +110,224 @@ export default async function ItemsPage({ searchParams }: ItemsPageProps) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Items</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Manage inventory items (assets and stock).
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Home
-        </Link>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Items"
+        description="Manage inventory items (assets and stock)."
+        icon={<List className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/masters">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back to Masters
+            </Link>
+          </Button>
+        }
+      />
 
-      {params?.error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {params.error}
-        </div>
-      )}
+      {params?.error && <InlineError message={params.error} />}
 
       {params?.success && (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-          {params.success}
-        </div>
+        <Alert>
+          <AlertDescription>{params.success}</AlertDescription>
+        </Alert>
       )}
 
-      <section className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-medium">{editingItem ? "Edit Item" : "Add New Item"}</h2>
+      <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">
+          {editingItem ? "Edit Item" : "Add New Item"}
+        </h2>
         <form action={editingItem ? handleUpdate : handleCreate} className="space-y-4">
           {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Item Name*</span>
-              <input
-                type="text"
+            <div className="space-y-2">
+              <Label htmlFor="name">Item Name*</Label>
+              <Input
+                id="name"
                 name="name"
                 defaultValue={editingItem?.name ?? ""}
-                className="w-full rounded border px-3 py-2"
                 required
                 placeholder="e.g., Laptop, Cleaning Supplies"
               />
-            </label>
+            </div>
 
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Item Type*</span>
-              <select
+            <div className="space-y-2">
+              <Label htmlFor="itemType">Item Type*</Label>
+              <Select
                 name="itemType"
                 defaultValue={editingItem?.itemType ?? ItemType.STOCK}
-                className="w-full rounded border px-3 py-2"
                 required
               >
-                <option value={ItemType.ASSET}>ASSET (Individually Tracked)</option>
-                <option value={ItemType.STOCK}>STOCK (Quantity Tracked)</option>
-              </select>
-            </label>
+                <SelectTrigger id="itemType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ItemType.ASSET}>ASSET (Individually Tracked)</SelectItem>
+                  <SelectItem value={ItemType.STOCK}>STOCK (Quantity Tracked)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Category*</span>
-              <select
+            <div className="space-y-2">
+              <Label htmlFor="categoryId">Category*</Label>
+              <Select
                 name="categoryId"
                 defaultValue={editingItem?.categoryId ?? ""}
-                className="w-full rounded border px-3 py-2"
                 required
               >
-                <option value="">Select Category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger id="categoryId">
+                  <SelectValue placeholder="Select Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Unit (for stock items)</span>
-              <input
-                type="text"
+            <div className="space-y-2">
+              <Label htmlFor="unit">Unit (for stock items)</Label>
+              <Input
+                id="unit"
                 name="unit"
                 defaultValue={editingItem?.unit ?? ""}
-                className="w-full rounded border px-3 py-2"
                 placeholder="e.g., pcs, kg, liter"
               />
-            </label>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Reorder Level</span>
-              <input
-                type="number"
+            <div className="space-y-2">
+              <Label htmlFor="reorderLevel">Reorder Level</Label>
+              <Input
+                id="reorderLevel"
                 name="reorderLevel"
-                defaultValue={editingItem?.reorderLevel?.toString() ?? ""}
-                className="w-full rounded border px-3 py-2"
+                type="number"
                 min="0"
                 step="0.01"
+                defaultValue={editingItem?.reorderLevel?.toString() ?? ""}
                 placeholder="Minimum stock quantity"
               />
-            </label>
+            </div>
 
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Status*</span>
-              <select
+            <div className="space-y-2">
+              <Label htmlFor="isActive">Status*</Label>
+              <Select
                 name="isActive"
                 defaultValue={editingItem?.isActive ? "true" : "false"}
-                className="w-full rounded border px-3 py-2"
                 required
               >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </label>
+                <SelectTrigger id="isActive">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
-              {editingItem ? "Update Item" : "Create Item"}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              {editingItem ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Update Item
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Item
+                </>
+              )}
+            </Button>
             {editingItem && (
-              <Link href="/masters/items" className="rounded border px-4 py-2 text-sm font-medium">
-                Cancel
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/masters/items">
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Link>
+              </Button>
             )}
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {items.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No items found. Create one to get started.
-          </div>
+          <EmptyState
+            icon={<List className="h-8 w-8" />}
+            title="No items yet"
+            description="Create your first item to start tracking inventory."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Name</th>
-                  <th className="border-b px-3 py-2">Type</th>
-                  <th className="border-b px-3 py-2">Category</th>
-                  <th className="border-b px-3 py-2">Unit</th>
-                  <th className="border-b px-3 py-2">Reorder Level</th>
-                  <th className="border-b px-3 py-2">Status</th>
-                  <th className="border-b px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead>Reorder Level</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                    <td className="border-b px-3 py-2 font-medium">{item.name}</td>
-                    <td className="border-b px-3 py-2">{item.itemType}</td>
-                    <td className="border-b px-3 py-2">{item.category.name}</td>
-                    <td className="border-b px-3 py-2">{item.unit ?? "-"}</td>
-                    <td className="border-b px-3 py-2">{item.reorderLevel?.toString() ?? "-"}</td>
-                    <td className="border-b px-3 py-2">
-                      <span
-                        className={
-                          item.isActive
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-600 dark:text-red-400"
-                        }
-                      >
-                        {item.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="border-b px-3 py-2">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/masters/items?edit=${item.id}`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={item.itemType} variant="secondary" />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.category.name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.unit ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {item.reorderLevel?.toString() ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={item.isActive ? "ACTIVE" : "INACTIVE"} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/masters/items?edit=${item.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <ConfirmActionForm
+                          action={handleDelete}
+                          confirmMessage="Are you sure you want to delete this item?"
+                          fields={{ id: item.id }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
                         >
-                          Edit
-                        </Link>
-                        <form action={handleDelete} className="inline">
-                          <input type="hidden" name="id" value={item.id} />
-                          <button
-                            type="submit"
-                            className="text-red-600 hover:underline dark:text-red-400"
-                            onClick={(e) => {
-                              if (!confirm("Are you sure you want to delete this item?")) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ConfirmActionForm>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

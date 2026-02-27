@@ -1,9 +1,34 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { MapPin, Plus, Edit, Trash2, X, ChevronRight } from "lucide-react";
 
 import { createLocation, updateLocation, deleteLocation } from "@/lib/actions/masters/locations";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineError } from "@/components/ui/inline-error";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ConfirmActionForm } from "@/components/ui/confirm-action-form";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type LocationsPageProps = {
   searchParams?: Promise<{ edit?: string; error?: string; success?: string }>;
@@ -81,181 +106,189 @@ export default async function LocationsPage({ searchParams }: LocationsPageProps
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Locations</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Manage storage and department locations within properties.
-          </p>
-        </div>
-        <Link
-          href="/"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Home
-        </Link>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Locations"
+        description="Manage storage and department locations within properties."
+        icon={<MapPin className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/masters">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back to Masters
+            </Link>
+          </Button>
+        }
+      />
 
-      {params?.error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {params.error}
-        </div>
-      )}
+      {params?.error && <InlineError message={params.error} />}
 
       {params?.success && (
-        <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
-          {params.success}
-        </div>
+        <Alert>
+          <AlertDescription>{params.success}</AlertDescription>
+        </Alert>
       )}
 
-      <section className="rounded-lg border bg-white p-6 dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-medium">
+      <Card className="p-6">
+        <h2 className="mb-4 text-lg font-semibold">
           {editingLocation ? "Edit Location" : "Add New Location"}
         </h2>
         <form action={editingLocation ? handleUpdate : handleCreate} className="space-y-4">
           {editingLocation && <input type="hidden" name="id" value={editingLocation.id} />}
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">Property*</span>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="propertyId">Property*</Label>
+            <Select
               name="propertyId"
               defaultValue={editingLocation?.propertyId ?? ""}
-              className="w-full rounded border px-3 py-2"
               required
             >
-              <option value="">Select Property</option>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              <SelectTrigger id="propertyId">
+                <SelectValue placeholder="Select Property" />
+              </SelectTrigger>
+              <SelectContent>
+                {properties.map((property) => (
+                  <SelectItem key={property.id} value={property.id}>
+                    {property.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">Location Name*</span>
-            <input
-              type="text"
+          <div className="space-y-2">
+            <Label htmlFor="name">Location Name*</Label>
+            <Input
+              id="name"
               name="name"
               defaultValue={editingLocation?.name ?? ""}
-              className="w-full rounded border px-3 py-2"
               required
               placeholder="e.g., Main Store, Kitchen Pantry"
             />
-          </label>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Floor</span>
-              <input
-                type="text"
-                name="floor"
-                defaultValue={editingLocation?.floor ?? ""}
-                className="w-full rounded border px-3 py-2"
-                placeholder="e.g., Ground Floor, 2nd Floor"
-              />
-            </label>
-
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Room</span>
-              <input
-                type="text"
-                name="room"
-                defaultValue={editingLocation?.room ?? ""}
-                className="w-full rounded border px-3 py-2"
-                placeholder="e.g., Room 101"
-              />
-            </label>
-
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Area</span>
-              <input
-                type="text"
-                name="area"
-                defaultValue={editingLocation?.area ?? ""}
-                className="w-full rounded border px-3 py-2"
-                placeholder="e.g., South Wing"
-              />
-            </label>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
-              {editingLocation ? "Update Location" : "Create Location"}
-            </button>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="floor">Floor</Label>
+              <Input
+                id="floor"
+                name="floor"
+                defaultValue={editingLocation?.floor ?? ""}
+                placeholder="e.g., Ground Floor"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="room">Room</Label>
+              <Input
+                id="room"
+                name="room"
+                defaultValue={editingLocation?.room ?? ""}
+                placeholder="e.g., Room 101"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="area">Area</Label>
+              <Input
+                id="area"
+                name="area"
+                defaultValue={editingLocation?.area ?? ""}
+                placeholder="e.g., South Wing"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              {editingLocation ? (
+                <>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Update Location
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Location
+                </>
+              )}
+            </Button>
             {editingLocation && (
-              <Link
-                href="/masters/locations"
-                className="rounded border px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/masters/locations">
+                  <X className="mr-2 h-4 w-4" />
+                  Cancel
+                </Link>
+              </Button>
             )}
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {locations.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No locations found. Create one to get started.
-          </div>
+          <EmptyState
+            icon={<MapPin className="h-8 w-8" />}
+            title="No locations yet"
+            description="Create your first location within a property to start managing inventory."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Name</th>
-                  <th className="border-b px-3 py-2">Property</th>
-                  <th className="border-b px-3 py-2">Floor</th>
-                  <th className="border-b px-3 py-2">Room</th>
-                  <th className="border-b px-3 py-2">Area</th>
-                  <th className="border-b px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Floor</TableHead>
+                  <TableHead>Room</TableHead>
+                  <TableHead>Area</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {locations.map((location) => (
-                  <tr key={location.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800">
-                    <td className="border-b px-3 py-2 font-medium">{location.name}</td>
-                    <td className="border-b px-3 py-2">{location.property.name}</td>
-                    <td className="border-b px-3 py-2">{location.floor ?? "-"}</td>
-                    <td className="border-b px-3 py-2">{location.room ?? "-"}</td>
-                    <td className="border-b px-3 py-2">{location.area ?? "-"}</td>
-                    <td className="border-b px-3 py-2">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/masters/locations?edit=${location.id}`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
+                  <TableRow key={location.id}>
+                    <TableCell className="font-medium">{location.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {location.property.name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {location.floor ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {location.room ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {location.area ?? "-"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/masters/locations?edit=${location.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </Button>
+                        <ConfirmActionForm
+                          action={handleDelete}
+                          confirmMessage="Are you sure you want to delete this location?"
+                          fields={{ id: location.id }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
                         >
-                          Edit
-                        </Link>
-                        <form action={handleDelete} className="inline">
-                          <input type="hidden" name="id" value={location.id} />
-                          <button
-                            type="submit"
-                            className="text-red-600 hover:underline dark:text-red-400"
-                            onClick={(e) => {
-                              if (!confirm("Are you sure you want to delete this location?")) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </ConfirmActionForm>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

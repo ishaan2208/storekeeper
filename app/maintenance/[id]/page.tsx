@@ -1,9 +1,30 @@
 import { MaintenanceStatus } from "@prisma/client";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import {
+  Wrench,
+  ChevronRight,
+  Tag,
+  Package,
+  MapPin,
+  AlertCircle,
+  DollarSign,
+  User,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
+} from "lucide-react";
 
 import { requireSessionOrThrow } from "@/lib/auth-server";
 import { canCloseMaintenance } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { InlineError } from "@/components/ui/inline-error";
 
 import { StatusUpdateForm } from "./status-update-form";
 import { CloseTicketForm } from "./close-ticket-form";
@@ -36,11 +57,16 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
 
   if (!hasPermission) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-        <div className="rounded-lg border bg-red-50 p-4 text-red-800 dark:bg-red-900 dark:text-red-200">
-          You do not have permission to view maintenance tickets.
-        </div>
-      </main>
+      <div className="space-y-6">
+        <PageHeader
+          title="Maintenance Ticket"
+          icon={<Wrench className="h-5 w-5" />}
+        />
+        <InlineError
+          title="Permission Denied"
+          message="You do not have permission to view maintenance tickets."
+        />
+      </div>
     );
   }
 
@@ -96,140 +122,185 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
     ticket.status !== MaintenanceStatus.SCRAPPED;
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">
-          Maintenance Ticket #{ticket.id.slice(-6).toUpperCase()}
-        </h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Created {formatDate(ticket.openedAt)} by {ticket.createdBy.name}
-        </p>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title={`Maintenance Ticket #${ticket.id.slice(-6).toUpperCase()}`}
+        description={`Created ${formatDate(ticket.openedAt)} by ${ticket.createdBy.name}`}
+        icon={<Wrench className="h-5 w-5" />}
+        actions={
+          <div className="flex gap-2">
+            <StatusBadge status={ticket.status.replace(/_/g, " ")} />
+            <Button variant="outline" asChild>
+              <Link href="/maintenance">
+                <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+                Back
+              </Link>
+            </Button>
+          </div>
+        }
+      />
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-        <h2 className="mb-3 text-lg font-medium">Asset Information</h2>
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <p>
-            <span className="font-medium">Asset Tag:</span>{" "}
-            <span className="font-mono">{ticket.asset.assetTag}</span>
-          </p>
-          <p>
-            <span className="font-medium">Item:</span> {ticket.asset.item.name}
-          </p>
-          <p>
-            <span className="font-medium">Category:</span>{" "}
-            {ticket.asset.item.category.name}
-          </p>
-          <p>
-            <span className="font-medium">Current Condition:</span>{" "}
-            {ticket.asset.condition}
-          </p>
-          <p>
-            <span className="font-medium">Location:</span>{" "}
-            {ticket.asset.currentLocation?.name ?? "Unassigned"}
-          </p>
-          <p>
-            <span className="font-medium">Property:</span>{" "}
-            {ticket.asset.currentLocation?.property.name ?? "-"}
-          </p>
-        </div>
-      </section>
+      {/* Asset Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Tag className="h-5 w-5" />
+            Asset Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Asset Tag</p>
+              <p className="font-medium font-mono">{ticket.asset.assetTag}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Item</p>
+              <p className="font-medium">{ticket.asset.item.name}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Category</p>
+              <p className="font-medium">{ticket.asset.item.category.name}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Current Condition</p>
+              <StatusBadge status={ticket.asset.condition} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                Location
+              </p>
+              <p className="font-medium">
+                {ticket.asset.currentLocation?.name ?? "Unassigned"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Property</p>
+              <p className="font-medium">
+                {ticket.asset.currentLocation?.property.name ?? "-"}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-        <h2 className="mb-3 text-lg font-medium">Ticket Details</h2>
-        <div className="space-y-3 text-sm">
-          <div className="flex items-start gap-2">
-            <span className="font-medium">Status:</span>
-            <span
-              className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${ticket.status === MaintenanceStatus.CLOSED
-                ? "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                : ticket.status === MaintenanceStatus.FIXED
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                }`}
-            >
-              {ticket.status.replace(/_/g, " ")}
-            </span>
+      {/* Ticket Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Ticket Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Problem Description</p>
+            <p className="text-sm">{ticket.problemText}</p>
           </div>
 
-          <p>
-            <span className="font-medium">Problem:</span>
-            <br />
-            <span className="mt-1 block text-zinc-700 dark:text-zinc-300">
-              {ticket.problemText}
-            </span>
-          </p>
+          <Separator />
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <p>
-              <span className="font-medium">Vendor:</span> {ticket.vendorName ?? "-"}
-            </p>
-            <p>
-              <span className="font-medium">Estimated Cost:</span>{" "}
-              {displayCost(ticket.estimatedCost)}
-            </p>
-            <p>
-              <span className="font-medium">Actual Cost:</span>{" "}
-              {displayCost(ticket.actualCost)}
-            </p>
-            <p>
-              <span className="font-medium">Closed At:</span>{" "}
-              {formatDate(ticket.closedAt)}
-            </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Vendor</p>
+              <p className="font-medium">{ticket.vendorName ?? "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                Estimated Cost
+              </p>
+              <p className="font-medium">{displayCost(ticket.estimatedCost)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                Actual Cost
+              </p>
+              <p className="font-medium">{displayCost(ticket.actualCost)}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                Closed At
+              </p>
+              <p className="font-medium">{formatDate(ticket.closedAt)}</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-        <h2 className="mb-3 text-lg font-medium">Activity Log</h2>
-        {ticket.logs.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            No activity logs yet.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {ticket.logs.map((log) => (
-              <div
-                key={log.id}
-                className="rounded border bg-zinc-50 p-3 text-sm dark:bg-zinc-800"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="font-medium">{log.status.replace(/_/g, " ")}</p>
-                    {log.note && (
-                      <p className="mt-1 text-zinc-700 dark:text-zinc-300">
-                        {log.note}
+      {/* Activity Log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Activity Log ({ticket.logs.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {ticket.logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No activity logs yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {ticket.logs.map((log, index) => (
+                <div key={log.id}>
+                  {index > 0 && <Separator className="my-4" />}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={log.status.replace(/_/g, " ")} />
+                      </div>
+                      {log.note && (
+                        <p className="text-sm text-muted-foreground">{log.note}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(log.createdAt)}
                       </p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                      {formatDate(log.createdAt)}
-                    </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                      by {log.createdBy.name}
-                    </p>
+                      <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                        <User className="h-3 w-3" />
+                        {log.createdBy.name}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
+      {/* Action Forms */}
       {isOpen && (
         <>
-          <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-            <h2 className="mb-3 text-lg font-medium">Update Status</h2>
-            <StatusUpdateForm ticketId={ticket.id} currentStatus={ticket.status} />
-          </section>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Update Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <StatusUpdateForm ticketId={ticket.id} currentStatus={ticket.status} />
+            </CardContent>
+          </Card>
 
-          <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-            <h2 className="mb-3 text-lg font-medium">Close Ticket</h2>
-            <CloseTicketForm ticketId={ticket.id} />
-          </section>
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                Close Ticket
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CloseTicketForm ticketId={ticket.id} />
+            </CardContent>
+          </Card>
         </>
       )}
-    </main>
+    </div>
   );
 }

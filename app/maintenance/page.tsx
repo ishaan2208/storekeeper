@@ -1,9 +1,34 @@
 import { MaintenanceStatus } from "@prisma/client";
 import Link from "next/link";
+import { Wrench, Plus, Filter, Search, Eye, DollarSign, Hash } from "lucide-react";
 
 import { requireSessionOrThrow } from "@/lib/auth-server";
 import { canCloseMaintenance } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InlineError } from "@/components/ui/inline-error";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type MaintenanceListPageProps = {
   searchParams?: Promise<{
@@ -27,29 +52,6 @@ function displayCost(cost: unknown): string {
   return `₹${Number(cost).toLocaleString("en-IN")}`;
 }
 
-function getStatusBadgeColor(status: MaintenanceStatus): string {
-  switch (status) {
-    case MaintenanceStatus.REPORTED:
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-    case MaintenanceStatus.DIAGNOSING:
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
-    case MaintenanceStatus.SENT_TO_VENDOR:
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
-    case MaintenanceStatus.IN_REPAIR:
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
-    case MaintenanceStatus.FIXED:
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    case MaintenanceStatus.CLOSED:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
-    case MaintenanceStatus.UNREPAIRABLE:
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-    case MaintenanceStatus.SCRAPPED:
-      return "bg-black text-white dark:bg-zinc-800 dark:text-zinc-100";
-    default:
-      return "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200";
-  }
-}
-
 export default async function MaintenanceListPage({
   searchParams,
 }: MaintenanceListPageProps) {
@@ -58,11 +60,17 @@ export default async function MaintenanceListPage({
 
   if (!hasPermission) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-        <div className="rounded-lg border bg-red-50 p-4 text-red-800 dark:bg-red-900 dark:text-red-200">
-          You do not have permission to view maintenance tickets.
-        </div>
-      </main>
+      <div className="space-y-6">
+        <PageHeader
+          title="Maintenance Tickets"
+          description="Track and manage asset maintenance activities."
+          icon={<Wrench className="h-5 w-5" />}
+        />
+        <InlineError
+          title="Permission Denied"
+          message="You do not have permission to view maintenance tickets."
+        />
+      </div>
     );
   }
 
@@ -100,146 +108,176 @@ export default async function MaintenanceListPage({
     take: 100,
   });
 
+  const openTicketsCount = tickets.filter((t) => !t.closedAt).length;
+
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Maintenance Tickets</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            Track and manage asset maintenance activities.
-          </p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Maintenance Tickets"
+        description="Track and manage asset maintenance activities."
+        icon={<Wrench className="h-5 w-5" />}
+        actions={
+          <div className="flex gap-2">
+            {openTicketsCount > 0 && (
+              <Badge variant="warning">
+                {openTicketsCount} Open
+              </Badge>
+            )}
+            <Button asChild>
+              <Link href="/maintenance/new">
+                <Plus className="mr-2 h-4 w-4" />
+                New Ticket
+              </Link>
+            </Button>
+          </div>
+        }
+      />
+
+      <Card className="p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Filter className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Filters</h2>
         </div>
-        <Link
-          href="/maintenance/new"
-          className="rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          + New Ticket
-        </Link>
-      </header>
+        <form method="get" className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select name="status" defaultValue={statusFilter ?? ""}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(MaintenanceStatus).map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.replace(/_/g, " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-        <h2 className="mb-3 text-lg font-medium">Filters</h2>
-        <form method="get" className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1 text-sm">
-            <span>Status</span>
-            <select
-              name="status"
-              defaultValue={statusFilter ?? ""}
-              className="w-full rounded border px-2 py-2"
-            >
-              <option value="">All</option>
-              {Object.values(MaintenanceStatus).map((status) => (
-                <option key={status} value={status}>
-                  {status.replace(/_/g, " ")}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="space-y-2">
+              <Label htmlFor="assetTag">
+                <Search className="mr-1 inline-block h-4 w-4" />
+                Asset Tag
+              </Label>
+              <Input
+                id="assetTag"
+                name="assetTag"
+                defaultValue={assetTagFilter ?? ""}
+                placeholder="Search by asset tag..."
+              />
+            </div>
+          </div>
 
-          <label className="space-y-1 text-sm">
-            <span>Asset Tag</span>
-            <input
-              type="text"
-              name="assetTag"
-              defaultValue={assetTagFilter ?? ""}
-              placeholder="Search by asset tag..."
-              className="w-full rounded border px-2 py-2"
-            />
-          </label>
-
-          <div className="flex items-end gap-2 sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              <Filter className="mr-2 h-4 w-4" />
               Apply Filters
-            </button>
-            <Link
-              href="/maintenance"
-              className="rounded border px-4 py-2 text-sm font-medium"
-            >
-              Clear
-            </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/maintenance">Clear</Link>
+            </Button>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {tickets.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No maintenance tickets found.
-          </div>
+          <EmptyState
+            icon={<Wrench className="h-8 w-8" />}
+            title="No maintenance tickets found"
+            description={
+              (statusFilter || assetTagFilter)
+                ? "No tickets match your filters."
+                : "No maintenance tickets have been created yet."
+            }
+            action={
+              (statusFilter || assetTagFilter) ? (
+                <Button variant="outline" asChild>
+                  <Link href="/maintenance">Clear Filters</Link>
+                </Button>
+              ) : (
+                <Button asChild>
+                  <Link href="/maintenance/new">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create First Ticket
+                  </Link>
+                </Button>
+              )
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Asset Tag</th>
-                  <th className="border-b px-3 py-2">Item</th>
-                  <th className="border-b px-3 py-2">Status</th>
-                  <th className="border-b px-3 py-2">Problem</th>
-                  <th className="border-b px-3 py-2">Vendor</th>
-                  <th className="border-b px-3 py-2">Est. Cost</th>
-                  <th className="border-b px-3 py-2">Actual Cost</th>
-                  <th className="border-b px-3 py-2">Opened</th>
-                  <th className="border-b px-3 py-2">Closed</th>
-                  <th className="border-b px-3 py-2">Logs</th>
-                  <th className="border-b px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Asset Tag</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Problem</TableHead>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead className="text-right">Est. Cost</TableHead>
+                  <TableHead className="text-right">Actual Cost</TableHead>
+                  <TableHead>Opened</TableHead>
+                  <TableHead>Closed</TableHead>
+                  <TableHead className="text-right">Logs</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {tickets.map((ticket) => (
-                  <tr
-                    key={ticket.id}
-                    className="hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    <td className="border-b px-3 py-2 font-mono text-xs">
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-medium font-mono text-sm">
                       {ticket.asset.assetTag}
-                    </td>
-                    <td className="border-b px-3 py-2">{ticket.asset.item.name}</td>
-                    <td className="border-b px-3 py-2">
-                      <span
-                        className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeColor(
-                          ticket.status,
-                        )}`}
-                      >
-                        {ticket.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="border-b px-3 py-2 max-w-xs truncate">
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {ticket.asset.item.name}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={ticket.status.replace(/_/g, " ")} />
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-muted-foreground">
                       {ticket.problemText}
-                    </td>
-                    <td className="border-b px-3 py-2">{ticket.vendorName ?? "-"}</td>
-                    <td className="border-b px-3 py-2">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {ticket.vendorName ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
                       {displayCost(ticket.estimatedCost)}
-                    </td>
-                    <td className="border-b px-3 py-2">
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground">
                       {displayCost(ticket.actualCost)}
-                    </td>
-                    <td className="border-b px-3 py-2 text-xs">
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {formatDate(ticket.openedAt)}
-                    </td>
-                    <td className="border-b px-3 py-2 text-xs">
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {formatDate(ticket.closedAt)}
-                    </td>
-                    <td className="border-b px-3 py-2 text-center">
-                      {ticket.logs.length}
-                    </td>
-                    <td className="border-b px-3 py-2">
-                      <Link
-                        href={`/maintenance/${ticket.id}`}
-                        className="text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="secondary">
+                        <Hash className="mr-1 h-3 w-3" />
+                        {ticket.logs.length}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end">
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href={`/maintenance/${ticket.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Link>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

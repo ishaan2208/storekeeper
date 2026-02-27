@@ -1,6 +1,33 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import {
+  FileText,
+  ChevronRight,
+  Building,
+  MapPin,
+  User,
+  Truck,
+  Package,
+  Tag,
+  Hash,
+  PenLine,
+} from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 import { PrintButton } from "./print-button";
 
@@ -54,100 +81,189 @@ export default async function SlipDetailPage({ params }: SlipDetailPageProps) {
   }
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-6">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Slip {slip.slipNo}</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            {slip.slipType} · {formatDate(slip.createdAt)}
-          </p>
-        </div>
-        <PrintButton />
-      </div>
-
-      <section className="rounded-lg border p-4">
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <p>
-            <span className="font-medium">Property:</span> {slip.property.name}
-          </p>
-          <p>
-            <span className="font-medium">Department:</span> {slip.department}
-          </p>
-          <p>
-            <span className="font-medium">From:</span> {slip.fromLocation?.name ?? "-"}
-          </p>
-          <p>
-            <span className="font-medium">To:</span> {slip.toLocation?.name ?? "-"}
-          </p>
-          {slip.vendor ? (
-            <p>
-              <span className="font-medium">Vendor:</span> {slip.vendor.name}
-            </p>
-          ) : null}
-          <p>
-            <span className="font-medium">Requested By:</span> {slip.requestedBy?.name ?? "-"}
-          </p>
-          <p>
-            <span className="font-medium">Issued By:</span> {slip.issuedBy?.name ?? "-"}
-          </p>
-          <p>
-            <span className="font-medium">Received By:</span> {slip.receivedBy?.name ?? "-"}
-          </p>
-        </div>
-      </section>
-
-      <section className="mt-4 overflow-x-auto rounded-lg border">
-        <table className="min-w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-              <th className="border-b px-3 py-2">Item</th>
-              <th className="border-b px-3 py-2">Type</th>
-              <th className="border-b px-3 py-2">Asset Tag</th>
-              <th className="border-b px-3 py-2">Qty</th>
-              <th className="border-b px-3 py-2">Condition</th>
-              <th className="border-b px-3 py-2">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {slip.lines.map((line) => (
-              <tr key={line.id}>
-                <td className="border-b px-3 py-2">{line.item.name}</td>
-                <td className="border-b px-3 py-2">{line.item.itemType}</td>
-                <td className="border-b px-3 py-2">{line.asset?.assetTag ?? "-"}</td>
-                <td className="border-b px-3 py-2">{displayQty(line.qty)}</td>
-                <td className="border-b px-3 py-2">{line.conditionAtMove ?? "-"}</td>
-                <td className="border-b px-3 py-2">{line.notes ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section className="mt-4 rounded-lg border p-4">
-        <h2 className="text-lg font-medium">Signatures</h2>
-        {slip.signatures.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">No signatures captured.</p>
-        ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {slip.signatures.map((signature) => (
-              <div key={signature.id} className="rounded-md border p-3 text-sm">
-                <p>
-                  <span className="font-medium">Name:</span> {signature.signedByName}
-                </p>
-                <p>
-                  <span className="font-medium">Method:</span> {signature.method}
-                </p>
-                <p>
-                  <span className="font-medium">Signed At:</span> {formatDate(signature.signedAt)}
-                </p>
-                <p>
-                  <span className="font-medium">User:</span> {signature.signedByUser?.name ?? "-"}
-                </p>
-              </div>
-            ))}
+    <div className="space-y-6">
+      <PageHeader
+        title={`Slip ${slip.slipNo}`}
+        description={`${slip.slipType} · ${formatDate(slip.createdAt)}`}
+        icon={<FileText className="h-5 w-5" />}
+        actions={
+          <div className="flex gap-2">
+            <PrintButton />
+            <Button variant="outline" asChild>
+              <Link href="/slips">
+                <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+                Back to Slips
+              </Link>
+            </Button>
           </div>
-        )}
-      </section>
-    </main>
+        }
+      />
+
+      {/* Slip Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Slip Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Building className="h-4 w-4" />
+                Property
+              </p>
+              <p className="font-medium">{slip.property.name}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Department</p>
+              <Badge variant="outline">{slip.department}</Badge>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                From Location
+              </p>
+              <p className="font-medium">{slip.fromLocation?.name ?? "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                To Location
+              </p>
+              <p className="font-medium">{slip.toLocation?.name ?? "-"}</p>
+            </div>
+            {slip.vendor && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Truck className="h-4 w-4" />
+                  Vendor
+                </p>
+                <p className="font-medium">{slip.vendor.name}</p>
+              </div>
+            )}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <User className="h-4 w-4" />
+                Requested By
+              </p>
+              <p className="font-medium">{slip.requestedBy?.name ?? "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <User className="h-4 w-4" />
+                Issued By
+              </p>
+              <p className="font-medium">{slip.issuedBy?.name ?? "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <User className="h-4 w-4" />
+                Received By
+              </p>
+              <p className="font-medium">{slip.receivedBy?.name ?? "-"}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Line Items */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Hash className="h-5 w-5" />
+            Line Items ({slip.lines.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Asset Tag</TableHead>
+                  <TableHead className="text-right">Qty</TableHead>
+                  <TableHead>Condition</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {slip.lines.map((line) => (
+                  <TableRow key={line.id}>
+                    <TableCell className="font-medium">{line.item.name}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={line.item.itemType} variant="secondary" />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {line.asset?.assetTag ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {displayQty(line.qty)}
+                    </TableCell>
+                    <TableCell>
+                      {line.conditionAtMove ? (
+                        <StatusBadge status={line.conditionAtMove} />
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {line.notes ?? "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Signatures */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PenLine className="h-5 w-5" />
+            Signatures
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {slip.signatures.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No signatures captured.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {slip.signatures.map((signature) => (
+                <Card key={signature.id}>
+                  <CardContent className="pt-6">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Name:</span>
+                        <span className="font-medium">{signature.signedByName}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Method:</span>
+                        <Badge variant="outline">{signature.method}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Signed At:</span>
+                        <span className="text-xs">{formatDate(signature.signedAt)}</span>
+                      </div>
+                      {signature.signedByUser && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">User:</span>
+                          <span>{signature.signedByUser.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

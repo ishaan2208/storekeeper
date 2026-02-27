@@ -1,10 +1,31 @@
 "use client";
 
 import { Condition, ItemType } from "@prisma/client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Wrench, Search, ChevronRight, AlertCircle, Tag, DollarSign } from "lucide-react";
 
 import { createMaintenanceTicket } from "@/lib/actions/maintenance";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { InlineError } from "@/components/ui/inline-error";
+import { SubmitButton } from "@/components/ui/submit-button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Asset = {
   id: string;
@@ -81,32 +102,37 @@ export default function NewMaintenanceTicketPage() {
   const selectedAsset = assets.find((a) => a.id === formData.assetId);
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-6">
-      <header className="mb-6 space-y-1">
-        <h1 className="text-2xl font-semibold">Create Maintenance Ticket</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Report a maintenance issue for an asset.
-        </p>
-      </header>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader
+        title="Create Maintenance Ticket"
+        description="Report a maintenance issue for an asset."
+        icon={<Wrench className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/maintenance">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back
+            </Link>
+          </Button>
+        }
+      />
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      {error && <InlineError message={error} />}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-          <h2 className="mb-4 text-lg font-medium">Asset Selection</h2>
-
-          <div className="space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Asset Selection
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex gap-2">
-              <input
-                type="text"
+              <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by asset tag or item name..."
-                className="flex-1 rounded border px-3 py-2 text-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -114,35 +140,33 @@ export default function NewMaintenanceTicketPage() {
                   }
                 }}
               />
-              <button
+              <Button
                 type="button"
                 onClick={handleSearchAssets}
                 disabled={loadingAssets}
-                className="rounded border bg-black px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black"
+                variant="secondary"
               >
+                <Search className="mr-2 h-4 w-4" />
                 {loadingAssets ? "Searching..." : "Search"}
-              </button>
+              </Button>
             </div>
 
             {assets.length > 0 && (
               <div className="max-h-64 overflow-y-auto rounded border">
-                <table className="min-w-full text-sm">
-                  <thead className="sticky top-0 bg-zinc-100 dark:bg-zinc-800">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Select</th>
-                      <th className="px-3 py-2 text-left">Asset Tag</th>
-                      <th className="px-3 py-2 text-left">Item</th>
-                      <th className="px-3 py-2 text-left">Condition</th>
-                      <th className="px-3 py-2 text-left">Location</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader className="sticky top-0 bg-muted">
+                    <TableRow>
+                      <TableHead className="w-12">Select</TableHead>
+                      <TableHead>Asset Tag</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Condition</TableHead>
+                      <TableHead>Location</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {assets.map((asset) => (
-                      <tr
-                        key={asset.id}
-                        className="hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                      >
-                        <td className="px-3 py-2">
+                      <TableRow key={asset.id}>
+                        <TableCell>
                           <input
                             type="radio"
                             name="assetId"
@@ -151,41 +175,52 @@ export default function NewMaintenanceTicketPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, assetId: e.target.value })
                             }
+                            className="h-4 w-4"
                           />
-                        </td>
-                        <td className="px-3 py-2 font-mono text-xs">
+                        </TableCell>
+                        <TableCell className="font-medium font-mono text-sm">
                           {asset.assetTag}
-                        </td>
-                        <td className="px-3 py-2">{asset.itemName}</td>
-                        <td className="px-3 py-2">{asset.condition}</td>
-                        <td className="px-3 py-2">
+                        </TableCell>
+                        <TableCell>{asset.itemName}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={asset.condition} />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           {asset.currentLocationName ?? "-"}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
 
             {selectedAsset && (
-              <div className="rounded border bg-blue-50 p-3 text-sm dark:bg-blue-900/20">
-                <strong>Selected:</strong> {selectedAsset.assetTag} -{" "}
-                {selectedAsset.itemName}
-              </div>
+              <Alert>
+                <Tag className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Selected:</strong> {selectedAsset.assetTag} -{" "}
+                  {selectedAsset.itemName}
+                </AlertDescription>
+              </Alert>
             )}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-          <h2 className="mb-4 text-lg font-medium">Problem Details</h2>
-
-          <div className="space-y-4">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">
-                Problem Description <span className="text-red-600">*</span>
-              </span>
-              <textarea
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Problem Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="problemText">
+                Problem Description <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="problemText"
                 value={formData.problemText}
                 onChange={(e) =>
                   setFormData({ ...formData, problemText: e.target.value })
@@ -195,30 +230,32 @@ export default function NewMaintenanceTicketPage() {
                 maxLength={1000}
                 rows={4}
                 placeholder="Describe the issue in detail..."
-                className="w-full rounded border px-3 py-2"
               />
-              <span className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 {formData.problemText.length}/1000 characters
-              </span>
-            </label>
+              </p>
+            </div>
 
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Vendor Name (Optional)</span>
-              <input
-                type="text"
+            <div className="space-y-2">
+              <Label htmlFor="vendorName">Vendor Name (Optional)</Label>
+              <Input
+                id="vendorName"
                 value={formData.vendorName}
                 onChange={(e) =>
                   setFormData({ ...formData, vendorName: e.target.value })
                 }
                 maxLength={200}
                 placeholder="e.g., ABC Repair Services"
-                className="w-full rounded border px-3 py-2"
               />
-            </label>
+            </div>
 
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">Estimated Cost (₹) (Optional)</span>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="estimatedCost">
+                <DollarSign className="mr-1 inline-block h-4 w-4" />
+                Estimated Cost (₹) (Optional)
+              </Label>
+              <Input
+                id="estimatedCost"
                 type="number"
                 value={formData.estimatedCost}
                 onChange={(e) =>
@@ -227,29 +264,24 @@ export default function NewMaintenanceTicketPage() {
                 min="0"
                 step="0.01"
                 placeholder="0.00"
-                className="w-full rounded border px-3 py-2"
               />
-            </label>
-          </div>
-        </section>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading || !formData.assetId || !formData.problemText}
-            className="rounded bg-black px-6 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+          <SubmitButton
+            isSubmitting={loading}
+            loadingText="Creating..."
+            disabled={!formData.assetId || !formData.problemText}
           >
-            {loading ? "Creating..." : "Create Ticket"}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="rounded border px-6 py-2 text-sm font-medium"
-          >
+            Create Ticket
+          </SubmitButton>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
-    </main>
+    </div>
   );
 }

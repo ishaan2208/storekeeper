@@ -1,7 +1,31 @@
 import Link from "next/link";
+import { Boxes, Filter, AlertCircle, CheckCircle2, Search } from "lucide-react";
 import { ItemType } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type StockPageProps = {
   searchParams?: Promise<{
@@ -66,94 +90,122 @@ export default async function StockPage({ searchParams }: StockPageProps) {
       )
     : stockBalances;
 
+  const lowStockCount = stockBalances.filter(
+    (balance) =>
+      balance.item.reorderLevel &&
+      Number(balance.qtyOnHand) < Number(balance.item.reorderLevel)
+  ).length;
+
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Stock Inventory</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          View quantity-tracked items across all locations.
-        </p>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Stock Inventory"
+        description="View quantity-tracked items across all locations."
+        icon={<Boxes className="h-5 w-5" />}
+        actions={
+          lowStockCount > 0 && (
+            <Badge variant="warning" className="gap-1">
+              <AlertCircle className="h-3 w-3" />
+              {lowStockCount} Low Stock
+            </Badge>
+          )
+        }
+      />
 
-      <section className="rounded-lg border bg-white p-4 dark:bg-zinc-900">
-        <h2 className="mb-3 text-lg font-medium">Filters</h2>
-        <form method="get" className="grid gap-4 sm:grid-cols-3">
-          <label className="space-y-1 text-sm">
-            <span>Search Item</span>
-            <input
-              type="text"
-              name="search"
-              defaultValue={searchQuery}
-              placeholder="Search by item name"
-              className="w-full rounded border px-3 py-2"
-            />
-          </label>
+      <Card className="p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <Filter className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Filters</h2>
+        </div>
+        <form method="get" className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="search">
+                <Search className="mr-1 inline-block h-4 w-4" />
+                Search Item
+              </Label>
+              <Input
+                id="search"
+                name="search"
+                defaultValue={searchQuery}
+                placeholder="Search by item name"
+              />
+            </div>
 
-          <label className="space-y-1 text-sm">
-            <span>Location</span>
-            <select
-              name="locationId"
-              defaultValue={locationIdFilter ?? ""}
-              className="w-full rounded border px-2 py-2"
-            >
-              <option value="">All Locations</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.property.name} - {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="space-y-2">
+              <Label htmlFor="locationId">Location</Label>
+              <Select name="locationId" defaultValue={locationIdFilter ?? ""}>
+                <SelectTrigger id="locationId">
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.property.name} - {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="lowStock"
-              value="true"
-              defaultChecked={lowStockFilter}
-              className="h-4 w-4"
-            />
-            <span>Show Low Stock Only</span>
-          </label>
+            <div className="flex items-end space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  name="lowStock"
+                  value="true"
+                  defaultChecked={lowStockFilter}
+                />
+                <span className="font-medium">Show Low Stock Only</span>
+              </label>
+            </div>
+          </div>
 
-          <div className="flex items-end gap-2 sm:col-span-3">
-            <button
-              type="submit"
-              className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-            >
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">
+              <Filter className="mr-2 h-4 w-4" />
               Apply Filters
-            </button>
-            <Link
-              href="/inventory/stock"
-              className="rounded border px-4 py-2 text-sm font-medium"
-            >
-              Clear
-            </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/inventory/stock">Clear</Link>
+            </Button>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-lg border bg-white dark:bg-zinc-900">
+      <Card>
         {filteredBalances.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-            No stock items found.
-          </div>
+          <EmptyState
+            icon={<Boxes className="h-8 w-8" />}
+            title="No stock items found"
+            description={
+              lowStockFilter
+                ? "No items are currently below their reorder level."
+                : "No stock items match your filters."
+            }
+            action={
+              (searchQuery || locationIdFilter || lowStockFilter) && (
+                <Button variant="outline" asChild>
+                  <Link href="/inventory/stock">Clear Filters</Link>
+                </Button>
+              )
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-zinc-100 text-left dark:bg-zinc-800">
-                  <th className="border-b px-3 py-2">Item</th>
-                  <th className="border-b px-3 py-2">Category</th>
-                  <th className="border-b px-3 py-2">Location</th>
-                  <th className="border-b px-3 py-2">Property</th>
-                  <th className="border-b px-3 py-2">Qty on Hand</th>
-                  <th className="border-b px-3 py-2">Unit</th>
-                  <th className="border-b px-3 py-2">Reorder Level</th>
-                  <th className="border-b px-3 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead className="text-right">Qty on Hand</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead className="text-right">Reorder Level</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {filteredBalances.map((balance) => {
                   const qtyOnHand = Number(balance.qtyOnHand);
                   const reorderLevel = balance.item.reorderLevel
@@ -163,59 +215,49 @@ export default async function StockPage({ searchParams }: StockPageProps) {
                     reorderLevel !== null && qtyOnHand < reorderLevel;
 
                   return (
-                    <tr
-                      key={balance.id}
-                      className="hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                    >
-                      <td className="border-b px-3 py-2 font-medium">
+                    <TableRow key={balance.id}>
+                      <TableCell className="font-medium">
                         {balance.item.name}
-                      </td>
-                      <td className="border-b px-3 py-2">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {balance.item.category.name}
-                      </td>
-                      <td className="border-b px-3 py-2">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {balance.location.name}
-                      </td>
-                      <td className="border-b px-3 py-2">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {balance.location.property.name}
-                      </td>
-                      <td className="border-b px-3 py-2 font-medium">
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
                         {qtyOnHand.toFixed(2)}
-                      </td>
-                      <td className="border-b px-3 py-2">
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
                         {balance.item.unit ?? "-"}
-                      </td>
-                      <td className="border-b px-3 py-2">
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
                         {reorderLevel !== null ? reorderLevel.toFixed(2) : "-"}
-                      </td>
-                      <td className="border-b px-3 py-2">
+                      </TableCell>
+                      <TableCell>
                         {isLowStock ? (
-                          <span className="inline-block rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-100">
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertCircle className="h-3 w-3" />
                             Low Stock
-                          </span>
+                          </Badge>
                         ) : (
-                          <span className="inline-block rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100">
+                          <Badge variant="success" className="gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
                             OK
-                          </span>
+                          </Badge>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
-
-      <section>
-        <Link
-          href="/"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Home
-        </Link>
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }

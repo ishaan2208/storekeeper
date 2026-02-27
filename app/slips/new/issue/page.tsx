@@ -1,10 +1,15 @@
 import { SignatureMethod, SlipType } from "@prisma/client";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { Send, ChevronRight } from "lucide-react";
 
 import { SlipForm } from "@/app/slips/new/components/slip-form";
 import { createSlip } from "@/lib/actions/slips";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type IssuePageProps = {
   searchParams?: Promise<{ ok?: string; error?: string }>;
@@ -63,25 +68,32 @@ export default async function NewIssueSlipPage({ searchParams }: IssuePageProps)
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Issue Items</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-300">
-          Record items being sent out from one location to another.
-        </p>
-      </header>
+    <div className="mx-auto w-full max-w-3xl space-y-6">
+      <PageHeader
+        title="Issue Items"
+        description="Record items being sent out from one location to another."
+        icon={<Send className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/slips">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back
+            </Link>
+          </Button>
+        }
+      />
 
-      {params?.ok ? (
-        <p className="rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-900">
-          Slip created: {params.ok}
-        </p>
-      ) : null}
+      {params?.ok && (
+        <Alert variant="success">
+          <AlertDescription>Slip created: {params.ok}</AlertDescription>
+        </Alert>
+      )}
 
-      {params?.error ? (
-        <p className="rounded-md bg-red-100 px-3 py-2 text-sm text-red-900">
-          {params.error}
-        </p>
-      ) : null}
+      {params?.error && (
+        <Alert variant="destructive">
+          <AlertDescription>{params.error}</AlertDescription>
+        </Alert>
+      )}
 
       <SlipForm
         slipType={SlipType.ISSUE}
@@ -102,6 +114,6 @@ export default async function NewIssueSlipPage({ searchParams }: IssuePageProps)
         issueSlips={[]}
         submitAction={submitIssue}
       />
-    </main>
+    </div>
   );
 }

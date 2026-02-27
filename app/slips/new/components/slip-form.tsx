@@ -2,6 +2,21 @@
 
 import { Condition, DepartmentType, ItemType, SlipType } from "@prisma/client";
 import { useMemo, useState } from "react";
+import { Plus, Trash2, Package, MapPin, Users, PenLine, Hash } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 type SelectOption = {
   id: string;
@@ -88,6 +103,17 @@ export function SlipForm({
   prefillSourceSlipId,
   submitAction,
 }: SlipFormProps) {
+  const [propertyId, setPropertyId] = useState<string>(properties[0]?.id ?? "");
+  const [department, setDepartment] = useState<string>(Object.values(DepartmentType)[0]);
+  const [fromLocationId, setFromLocationId] = useState<string>(locations[0]?.id ?? "");
+  const [toLocationId, setToLocationId] = useState<string>(locations[0]?.id ?? "");
+  const [vendorId, setVendorId] = useState<string>("");
+  const [requestedById, setRequestedById] = useState<string>("");
+  const [issuedById, setIssuedById] = useState<string>("");
+  const [receivedById, setReceivedById] = useState<string>("");
+  const [signedByName, setSignedByName] = useState<string>("");
+  const [signedByUserId, setSignedByUserId] = useState<string>("");
+
   const [sourceSlipId, setSourceSlipId] = useState<string>(prefillSourceSlipId ?? "");
   const [lines, setLines] = useState<LineState[]>(() => [createInitialLine(items)]);
   const [lineErrors, setLineErrors] = useState<Record<string, LineErrors>>({});
@@ -210,409 +236,494 @@ export function SlipForm({
         }
         setFormError(null);
       }}
-      className="space-y-6 rounded-lg border p-4"
+      className="space-y-6"
     >
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-medium">Where and Who</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+      {/* Where and Who Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Where and Who
+          </CardTitle>
+          <CardDescription>
             Select locations and people involved in this movement.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {slipType === SlipType.RETURN && issueSlips.length > 0 ? (
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <span>Return from Original Issue (optional)</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {slipType === SlipType.RETURN && issueSlips.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="sourceSlipId">Return from Original Issue (optional)</Label>
+              <p className="text-xs text-muted-foreground">
                 Select the original issue slip to validate return quantities and assets.
               </p>
-              <select
-                name="sourceSlipId"
-                value={sourceSlipId}
-                onChange={(event) => setSourceSlipId(event.target.value)}
-                className="w-full rounded border px-2 py-2"
-              >
-                <option value="">None</option>
-                {issueSlips.map((slip) => (
-                  <option key={slip.id} value={slip.id}>
-                    {slip.slipNo}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          <label className="space-y-1 text-sm">
-            <span>Property</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Hotel/site where this movement happened.</p>
-            <select name="propertyId" className="w-full rounded border px-2 py-2" required>
-              {properties.map((property) => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-1 text-sm">
-            <span>Department</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Which department requested this movement.</p>
-            <select name="department" className="w-full rounded border px-2 py-2" required>
-              {Object.values(DepartmentType).map((department) => (
-                <option key={department} value={department}>
-                  {titleCaseLabel(department)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {slipType !== SlipType.RECEIVE ? (
-            <label className="space-y-1 text-sm">
-              <span>From Location</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Where the item is currently kept.</p>
-              <select name="fromLocationId" className="w-full rounded border px-2 py-2" required>
-                {locations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          <label className="space-y-1 text-sm">
-            <span>{slipType === SlipType.RECEIVE ? "Receiving Location" : "To Location"}</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {slipType === SlipType.RECEIVE
-                ? "Where the items will be stored after receiving."
-                : "Where the item is being moved to."}
-            </p>
-            <select name="toLocationId" className="w-full rounded border px-2 py-2" required>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {slipType === SlipType.RECEIVE ? (
-            <label className="space-y-1 text-sm">
-              <span>Vendor (optional)</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Select the vendor/supplier if this is a purchase.
-              </p>
-              <select name="vendorId" className="w-full rounded border px-2 py-2">
-                <option value="">Select vendor</option>
-                {vendors.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>
-                    {vendor.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <label className="space-y-1 text-sm">
-              <span>Requested By</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Person who asked for this movement.</p>
-              <select name="requestedById" className="w-full rounded border px-2 py-2">
-                <option value="">Select user</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {slipType === SlipType.RECEIVE ? (
-            <label className="space-y-1 text-sm">
-              <span>Received By</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Store person receiving the items.</p>
-              <select name="receivedById" className="w-full rounded border px-2 py-2">
-                <option value="">Select user</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <label className="space-y-1 text-sm">
-              <span>Issued By</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Person handing over the item.</p>
-              <select name="issuedById" className="w-full rounded border px-2 py-2">
-                <option value="">Select user</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {slipType === SlipType.RETURN ? (
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <span>Received By</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Person receiving the returned item.</p>
-              <select name="receivedById" className="w-full rounded border px-2 py-2">
-                <option value="">Select user</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {slipType === SlipType.TRANSFER ? (
-            <label className="space-y-1 text-sm sm:col-span-2">
-              <span>Transfer Notes</span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Explain why this transfer is happening.
-              </p>
-              <input name="transferNotes" className="w-full rounded border px-2 py-2" />
-            </label>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-medium">What Is Moving</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
-              Add one or more consumables or equipment lines. Use the filter below to search items.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={addLine}
-            className="rounded border px-3 py-1 text-sm font-medium"
-          >
-            Add line
-          </button>
-        </div>
-
-        <div className="space-y-1 text-sm">
-          <label htmlFor="item-filter" className="text-xs text-zinc-500 dark:text-zinc-400">
-            Filter items by name
-          </label>
-          <input
-            id="item-filter"
-            type="text"
-            value={itemFilter}
-            onChange={(event) => setItemFilter(event.target.value)}
-            placeholder="Type to search items..."
-            className="w-full rounded border px-2 py-2"
-          />
-        </div>
-
-        {lines.map((line, index) => {
-          const availableItems = filteredItemsByType[line.itemType];
-          const selectedItemId = availableItems.some((item) => item.id === line.itemId)
-            ? line.itemId
-            : availableItems[0]?.id ?? "";
-
-          const filteredAssets = assets.filter((asset) => asset.itemId === selectedItemId);
-
-          return (
-            <div key={line.id} className="space-y-3 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Line {index + 1}</p>
-                <button
-                  type="button"
-                  onClick={() => removeLine(line.id)}
-                  className="rounded border px-2 py-1 text-xs"
-                >
-                  Remove
-                </button>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1 text-sm">
-                  <span>Item Category</span>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Choose Consumable for quantity-based items, Equipment for tagged assets.
-                  </p>
-                  <select
-                    value={line.itemType}
-                    onChange={(event) => {
-                      const nextType = event.target.value as ItemType;
-                      const defaultItem = itemsByType[nextType][0];
-                      updateLine(line.id, {
-                        itemType: nextType,
-                        itemId: defaultItem?.id ?? "",
-                        qty: "",
-                        assetId: "",
-                        conditionAtMove: "",
-                      });
-                    }}
-                    className="w-full rounded border px-2 py-2"
-                  >
-                    <option value={ItemType.STOCK}>{ITEM_TYPE_LABEL[ItemType.STOCK]}</option>
-                    <option value={ItemType.ASSET}>{ITEM_TYPE_LABEL[ItemType.ASSET]}</option>
-                  </select>
-                </label>
-
-                <label className="space-y-1 text-sm">
-                  <span>Item</span>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {availableItems.length === 0
-                      ? "No items match the filter."
-                      : `${availableItems.length} item(s) available.`}
-                  </p>
-                  <select
-                    value={selectedItemId}
-                    onChange={(event) =>
-                      updateLine(line.id, { itemId: event.target.value, assetId: "" })
-                    }
-                    className="w-full rounded border px-2 py-2"
-                    disabled={availableItems.length === 0}
-                  >
-                    {availableItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  {lineErrors[line.id]?.itemId ? (
-                    <p className="text-xs text-red-600">{lineErrors[line.id]?.itemId}</p>
-                  ) : null}
-                </label>
-
-                {line.itemType === ItemType.STOCK ? (
-                  <label className="space-y-1 text-sm">
-                    <span>Quantity</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Enter total units being moved (for example, 10).
-                    </p>
-                    <input
-                      value={line.qty}
-                      onChange={(event) => updateLine(line.id, { qty: event.target.value })}
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      className="w-full rounded border px-2 py-2"
-                      placeholder="e.g. 10"
-                    />
-                    {lineErrors[line.id]?.qty ? (
-                      <p className="text-xs text-red-600">{lineErrors[line.id]?.qty}</p>
-                    ) : null}
-                  </label>
-                ) : (
-                  <label className="space-y-1 text-sm">
-                    <span>Equipment Tag</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Pick the exact tagged equipment to move.
-                    </p>
-                    <select
-                      value={line.assetId}
-                      onChange={(event) => updateLine(line.id, { assetId: event.target.value })}
-                      className="w-full rounded border px-2 py-2"
-                    >
-                      <option value="">Select asset</option>
-                      {filteredAssets.map((asset) => (
-                        <option key={asset.id} value={asset.id}>
-                          {asset.assetTag} - {asset.itemName}
-                        </option>
-                      ))}
-                    </select>
-                    {lineErrors[line.id]?.assetId ? (
-                      <p className="text-xs text-red-600">{lineErrors[line.id]?.assetId}</p>
-                    ) : null}
-                  </label>
-                )}
-
-                {slipType === SlipType.RETURN && line.itemType === ItemType.ASSET ? (
-                  <label className="space-y-1 text-sm">
-                    <span>Condition on Return</span>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Update only if condition changed while in use.
-                    </p>
-                    <select
-                      value={line.conditionAtMove}
-                      onChange={(event) =>
-                        updateLine(line.id, { conditionAtMove: event.target.value })
-                      }
-                      className="w-full rounded border px-2 py-2"
-                    >
-                      <option value="">Keep existing condition</option>
-                      {Object.values(Condition).map((condition) => (
-                        <option key={condition} value={condition}>
-                          {titleCaseLabel(condition)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-              </div>
-
-              <label className="space-y-1 text-sm">
-                <span>Notes</span>
-                <input
-                  value={line.notes}
-                  onChange={(event) => updateLine(line.id, { notes: event.target.value })}
-                  className="w-full rounded border px-2 py-2"
-                  placeholder="Optional line note"
-                />
-              </label>
+              <Select value={sourceSlipId} onValueChange={setSourceSlipId}>
+                <SelectTrigger id="sourceSlipId">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {issueSlips.map((slip) => (
+                    <SelectItem key={slip.id} value={slip.id}>
+                      {slip.slipNo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="sourceSlipId" value={sourceSlipId} />
             </div>
-          );
-        })}
-      </section>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="propertyId">Property <span className="text-destructive">*</span></Label>
+              <p className="text-xs text-muted-foreground">Hotel/site where this movement happened.</p>
+              <Select value={propertyId} onValueChange={setPropertyId} required>
+                <SelectTrigger id="propertyId">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties.map((property) => (
+                    <SelectItem key={property.id} value={property.id}>
+                      {property.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="propertyId" value={propertyId} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department <span className="text-destructive">*</span></Label>
+              <p className="text-xs text-muted-foreground">Which department requested this movement.</p>
+              <Select value={department} onValueChange={setDepartment} required>
+                <SelectTrigger id="department">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(DepartmentType).map((dept) => (
+                    <SelectItem key={dept} value={dept}>
+                      {titleCaseLabel(dept)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="department" value={department} />
+            </div>
+
+            {slipType !== SlipType.RECEIVE && (
+              <div className="space-y-2">
+                <Label htmlFor="fromLocationId">From Location <span className="text-destructive">*</span></Label>
+                <p className="text-xs text-muted-foreground">Where the item is currently kept.</p>
+                <Select value={fromLocationId} onValueChange={setFromLocationId} required>
+                  <SelectTrigger id="fromLocationId">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        {location.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="fromLocationId" value={fromLocationId} />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="toLocationId">
+                {slipType === SlipType.RECEIVE ? "Receiving Location" : "To Location"} <span className="text-destructive">*</span>
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {slipType === SlipType.RECEIVE
+                  ? "Where the items will be stored after receiving."
+                  : "Where the item is being moved to."}
+              </p>
+              <Select value={toLocationId} onValueChange={setToLocationId} required>
+                <SelectTrigger id="toLocationId">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={location.id}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="toLocationId" value={toLocationId} />
+            </div>
+
+            {slipType === SlipType.RECEIVE ? (
+              <div className="space-y-2">
+                <Label htmlFor="vendorId">Vendor (optional)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Select the vendor/supplier if this is a purchase.
+                </p>
+                <Select value={vendorId} onValueChange={setVendorId}>
+                  <SelectTrigger id="vendorId">
+                    <SelectValue placeholder="Select vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.map((vendor) => (
+                      <SelectItem key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="vendorId" value={vendorId} />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="requestedById">Requested By</Label>
+                <p className="text-xs text-muted-foreground">Person who asked for this movement.</p>
+                <Select value={requestedById} onValueChange={setRequestedById}>
+                  <SelectTrigger id="requestedById">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="requestedById" value={requestedById} />
+              </div>
+            )}
+
+            {slipType === SlipType.RECEIVE ? (
+              <div className="space-y-2">
+                <Label htmlFor="receivedById">Received By</Label>
+                <p className="text-xs text-muted-foreground">Store person receiving the items.</p>
+                <Select value={receivedById} onValueChange={setReceivedById}>
+                  <SelectTrigger id="receivedById">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="receivedById" value={receivedById} />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="issuedById">Issued By</Label>
+                <p className="text-xs text-muted-foreground">Person handing over the item.</p>
+                <Select value={issuedById} onValueChange={setIssuedById}>
+                  <SelectTrigger id="issuedById">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="issuedById" value={issuedById} />
+              </div>
+            )}
+
+            {slipType === SlipType.RETURN && (
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="receivedByIdReturn">Received By</Label>
+                <p className="text-xs text-muted-foreground">Person receiving the returned item.</p>
+                <Select value={receivedById} onValueChange={setReceivedById}>
+                  <SelectTrigger id="receivedByIdReturn">
+                    <SelectValue placeholder="Select user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input type="hidden" name="receivedById" value={receivedById} />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* What Is Moving Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                What Is Moving
+              </CardTitle>
+              <CardDescription>
+                Add one or more consumables or equipment lines. Use the filter below to search items.
+              </CardDescription>
+            </div>
+            <Button type="button" onClick={addLine} variant="outline" size="sm">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Line
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="item-filter">Filter items by name</Label>
+            <Input
+              id="item-filter"
+              type="text"
+              value={itemFilter}
+              onChange={(event) => setItemFilter(event.target.value)}
+              placeholder="Type to search items..."
+            />
+          </div>
+
+          <Separator />
+
+          {lines.map((line, index) => {
+            const availableItems = filteredItemsByType[line.itemType];
+            const selectedItemId = availableItems.some((item) => item.id === line.itemId)
+              ? line.itemId
+              : availableItems[0]?.id ?? "";
+
+            const filteredAssets = assets.filter((asset) => asset.itemId === selectedItemId);
+
+            return (
+              <Card key={line.id} className="border-muted">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="flex items-center gap-2 text-sm font-medium">
+                      <Hash className="h-4 w-4" />
+                      Line {index + 1}
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => removeLine(line.id)}
+                      variant="ghost"
+                      size="sm"
+                      disabled={lines.length === 1}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Item Category</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Choose Consumable for quantity-based items, Equipment for tagged assets.
+                      </p>
+                      <Select
+                        value={line.itemType}
+                        onValueChange={(value) => {
+                          const nextType = value as ItemType;
+                          const defaultItem = itemsByType[nextType][0];
+                          updateLine(line.id, {
+                            itemType: nextType,
+                            itemId: defaultItem?.id ?? "",
+                            qty: "",
+                            assetId: "",
+                            conditionAtMove: "",
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={ItemType.STOCK}>{ITEM_TYPE_LABEL[ItemType.STOCK]}</SelectItem>
+                          <SelectItem value={ItemType.ASSET}>{ITEM_TYPE_LABEL[ItemType.ASSET]}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Item</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {availableItems.length === 0
+                          ? "No items match the filter."
+                          : `${availableItems.length} item(s) available.`}
+                      </p>
+                      <Select
+                        value={selectedItemId}
+                        onValueChange={(value) =>
+                          updateLine(line.id, { itemId: value, assetId: "" })
+                        }
+                        disabled={availableItems.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableItems.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {lineErrors[line.id]?.itemId && (
+                        <p className="text-xs text-destructive">{lineErrors[line.id]?.itemId}</p>
+                      )}
+                    </div>
+
+                    {line.itemType === ItemType.STOCK ? (
+                      <div className="space-y-2">
+                        <Label>Quantity</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Enter total units being moved (for example, 10).
+                        </p>
+                        <Input
+                          value={line.qty}
+                          onChange={(event) => updateLine(line.id, { qty: event.target.value })}
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="e.g. 10"
+                        />
+                        {lineErrors[line.id]?.qty && (
+                          <p className="text-xs text-destructive">{lineErrors[line.id]?.qty}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label>Equipment Tag</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Pick the exact tagged equipment to move.
+                        </p>
+                        <Select
+                          value={line.assetId}
+                          onValueChange={(value) => updateLine(line.id, { assetId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select asset" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredAssets.map((asset) => (
+                              <SelectItem key={asset.id} value={asset.id}>
+                                {asset.assetTag} - {asset.itemName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {lineErrors[line.id]?.assetId && (
+                          <p className="text-xs text-destructive">{lineErrors[line.id]?.assetId}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {slipType === SlipType.RETURN && line.itemType === ItemType.ASSET && (
+                      <div className="space-y-2">
+                        <Label>Condition on Return</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Update only if condition changed while in use.
+                        </p>
+                        <Select
+                          value={line.conditionAtMove}
+                          onValueChange={(value) =>
+                            updateLine(line.id, { conditionAtMove: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Keep existing condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.values(Condition).map((condition) => (
+                              <SelectItem key={condition} value={condition}>
+                                {titleCaseLabel(condition)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Notes</Label>
+                    <Input
+                      value={line.notes}
+                      onChange={(event) => updateLine(line.id, { notes: event.target.value })}
+                      placeholder="Optional line note"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </CardContent>
+      </Card>
 
       <input type="hidden" name="linesPayload" value={serializedLines} />
 
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-medium">Sign-Off</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
+      {/* Sign-Off Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PenLine className="h-5 w-5" />
+            Sign-Off
+          </CardTitle>
+          <CardDescription>
             Capture who approved this movement.
-          </p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="signedByName">Signed By Name <span className="text-destructive">*</span></Label>
+              <p className="text-xs text-muted-foreground">
+                Enter full name of the person signing this record.
+              </p>
+              <Input
+                id="signedByName"
+                name="signedByName"
+                type="text"
+                value={signedByName}
+                onChange={(e) => setSignedByName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="signedByUserId">Signed By User (optional)</Label>
+              <p className="text-xs text-muted-foreground">
+                Link signature to an existing user if available.
+              </p>
+              <Select value={signedByUserId} onValueChange={setSignedByUserId}>
+                <SelectTrigger id="signedByUserId">
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input type="hidden" name="signedByUserId" value={signedByUserId} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {formError && (
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+          {formError}
         </div>
+      )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1 text-sm">
-            <span>Signed By Name</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Enter full name of the person signing this record.
-            </p>
-            <input name="signedByName" type="text" className="w-full rounded border px-2 py-2" required />
-          </label>
-
-          <label className="space-y-1 text-sm">
-            <span>Signed By User (optional)</span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Link signature to an existing user if available.
-            </p>
-            <select name="signedByUserId" className="w-full rounded border px-2 py-2">
-              <option value="">Select user</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      {formError ? (
-        <p className="rounded-md bg-red-100 px-3 py-2 text-sm text-red-900">{formError}</p>
-      ) : null}
-
-      <button
-        type="submit"
-        className="rounded bg-black px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-black"
-      >
+      <Button type="submit" size="lg" className="w-full sm:w-auto">
         Create {slipType} Slip
-      </button>
+      </Button>
     </form>
   );
 }

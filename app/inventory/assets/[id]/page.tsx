@@ -1,7 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import {
+  Tag,
+  ChevronRight,
+  Package,
+  MapPin,
+  Calendar,
+  FileText,
+  Wrench,
+  AlertTriangle,
+  TrendingUp,
+  Clock,
+  User,
+} from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 type AssetDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -153,254 +172,308 @@ export default async function AssetDetailPage({
   timelineEvents.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-6">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Asset: {asset.assetTag}</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            {asset.item.name} · {asset.item.category.name}
-          </p>
-        </div>
-        <Link
-          href="/inventory/assets"
-          className="rounded border px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800"
-        >
-          Back to Assets
-        </Link>
+    <div className="space-y-6">
+      <PageHeader
+        title={`Asset: ${asset.assetTag}`}
+        description={`${asset.item.name} · ${asset.item.category.name}`}
+        icon={<Tag className="h-5 w-5" />}
+        actions={
+          <Button variant="outline" asChild>
+            <Link href="/inventory/assets">
+              <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+              Back to Assets
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Asset Details Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Asset Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Asset Tag</p>
+              <p className="font-medium font-mono">{asset.assetTag}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Serial Number</p>
+              <p className="font-medium">{asset.serialNumber ?? "-"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Condition</p>
+              <StatusBadge status={asset.condition} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                Current Location
+              </p>
+              <p className="font-medium">
+                {asset.currentLocation
+                  ? `${asset.currentLocation.property.name} - ${asset.currentLocation.name}`
+                  : "-"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Purchase Date
+              </p>
+              <p className="font-medium">
+                {asset.purchaseDate
+                  ? new Date(asset.purchaseDate).toLocaleDateString("en-IN")
+                  : "-"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Warranty Until
+              </p>
+              <p className="font-medium">
+                {asset.warrantyUntil
+                  ? new Date(asset.warrantyUntil).toLocaleDateString("en-IN")
+                  : "-"}
+              </p>
+            </div>
+            {asset.notes && (
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-sm text-muted-foreground">Notes</p>
+                <p className="text-sm">{asset.notes}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Stats */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Movements</p>
+                <p className="text-3xl font-bold">{movementLogs.length}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-primary opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Maintenance Tickets</p>
+                <p className="text-3xl font-bold">{maintenanceTickets.length}</p>
+              </div>
+              <Wrench className="h-8 w-8 text-warning opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Damage Reports</p>
+                <p className="text-3xl font-bold">{damageReports.length}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-destructive opacity-50" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <section className="rounded-lg border p-4">
-        <h2 className="mb-3 text-lg font-medium">Asset Details</h2>
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
-          <p>
-            <span className="font-medium">Asset Tag:</span> {asset.assetTag}
-          </p>
-          <p>
-            <span className="font-medium">Serial Number:</span>{" "}
-            {asset.serialNumber ?? "-"}
-          </p>
-          <p>
-            <span className="font-medium">Condition:</span> {asset.condition}
-          </p>
-          <p>
-            <span className="font-medium">Current Location:</span>{" "}
-            {asset.currentLocation
-              ? `${asset.currentLocation.property.name} - ${asset.currentLocation.name}`
-              : "-"}
-          </p>
-          <p>
-            <span className="font-medium">Purchase Date:</span>{" "}
-            {asset.purchaseDate
-              ? new Date(asset.purchaseDate).toLocaleDateString("en-IN")
-              : "-"}
-          </p>
-          <p>
-            <span className="font-medium">Warranty Until:</span>{" "}
-            {asset.warrantyUntil
-              ? new Date(asset.warrantyUntil).toLocaleDateString("en-IN")
-              : "-"}
-          </p>
-          {asset.notes && (
-            <p className="sm:col-span-2">
-              <span className="font-medium">Notes:</span> {asset.notes}
+      {/* Timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Activity Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {timelineEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No activity recorded for this asset.
             </p>
-          )}
-        </div>
-      </section>
+          ) : (
+            <div className="space-y-4">
+              {timelineEvents.map((event, index) => (
+                <div key={`${event.type}-${index}`}>
+                  {index > 0 && <Separator className="my-4" />}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {event.type === "movement" && (
+                          <>
+                            <Package className="h-4 w-4 text-primary" />
+                            <Badge variant="secondary">Movement</Badge>
+                          </>
+                        )}
+                        {event.type === "maintenance_ticket" && (
+                          <>
+                            <Wrench className="h-4 w-4 text-warning" />
+                            <Badge variant="warning">Maintenance Ticket</Badge>
+                          </>
+                        )}
+                        {event.type === "maintenance_log" && (
+                          <>
+                            <FileText className="h-4 w-4 text-primary" />
+                            <Badge variant="outline">Maintenance Update</Badge>
+                          </>
+                        )}
+                        {event.type === "damage_report" && (
+                          <>
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                            <Badge variant="destructive">Damage Report</Badge>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(event.timestamp)}
+                      </span>
+                    </div>
 
-      <section className="mt-4 rounded-lg border p-4">
-        <h2 className="mb-3 text-lg font-medium">Timeline</h2>
-        {timelineEvents.length === 0 ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            No activity recorded for this asset.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {timelineEvents.map((event, index) => (
-              <div
-                key={`${event.type}-${index}`}
-                className="relative rounded-lg border p-4"
-              >
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {event.type === "movement" && (
-                      <span className="inline-block rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-                        Movement
-                      </span>
-                    )}
-                    {event.type === "maintenance_ticket" && (
-                      <span className="inline-block rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-100">
-                        Maintenance Ticket
-                      </span>
-                    )}
-                    {event.type === "maintenance_log" && (
-                      <span className="inline-block rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100">
-                        Maintenance Update
-                      </span>
-                    )}
-                    {event.type === "damage_report" && (
-                      <span className="inline-block rounded bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-100">
-                        Damage Report
-                      </span>
-                    )}
+                    <div className="ml-6 space-y-2 text-sm">
+                      {event.type === "movement" && (
+                        <>
+                          <p>
+                            <span className="font-medium">Type:</span>{" "}
+                            <StatusBadge status={String(event.data.movementType)} variant="secondary" />
+                          </p>
+                          {event.data.slipNo && (
+                            <p>
+                              <span className="font-medium">Slip:</span>{" "}
+                              <code className="rounded bg-muted px-1.5 py-0.5">
+                                {String(event.data.slipNo)}
+                              </code>
+                            </p>
+                          )}
+                          {event.data.fromLocation && (
+                            <p className="flex items-center gap-2">
+                              <span className="font-medium">From:</span>{" "}
+                              {String(event.data.fromLocation)}
+                            </p>
+                          )}
+                          {event.data.toLocation && (
+                            <p className="flex items-center gap-2">
+                              <span className="font-medium">To:</span>{" "}
+                              {String(event.data.toLocation)}
+                            </p>
+                          )}
+                          {event.data.condition && (
+                            <p>
+                              <span className="font-medium">Condition:</span>{" "}
+                              <StatusBadge status={String(event.data.condition)} />
+                            </p>
+                          )}
+                          {event.data.note && (
+                            <p className="text-muted-foreground italic">
+                              "{String(event.data.note)}"
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {event.type === "maintenance_ticket" && (
+                        <>
+                          <p>
+                            <span className="font-medium">Status:</span>{" "}
+                            <StatusBadge status={String(event.data.status)} />
+                          </p>
+                          <p>
+                            <span className="font-medium">Problem:</span>{" "}
+                            {String(event.data.problemText)}
+                          </p>
+                          {event.data.vendorName && (
+                            <p>
+                              <span className="font-medium">Vendor:</span>{" "}
+                              {String(event.data.vendorName)}
+                            </p>
+                          )}
+                          {event.data.estimatedCost && (
+                            <p>
+                              <span className="font-medium">Estimated Cost:</span> ₹
+                              {String(event.data.estimatedCost)}
+                            </p>
+                          )}
+                          {event.data.actualCost && (
+                            <p>
+                              <span className="font-medium">Actual Cost:</span> ₹
+                              {String(event.data.actualCost)}
+                            </p>
+                          )}
+                          <p className="flex items-center gap-1 text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            {String(event.data.createdBy)}
+                          </p>
+                          {event.data.closedAt && (
+                            <p>
+                              <span className="font-medium">Closed:</span>{" "}
+                              {formatDate(event.data.closedAt as Date)}
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {event.type === "maintenance_log" && (
+                        <>
+                          <p>
+                            <span className="font-medium">Status:</span>{" "}
+                            <StatusBadge status={String(event.data.status)} />
+                          </p>
+                          {event.data.note && (
+                            <p className="text-muted-foreground italic">
+                              "{String(event.data.note)}"
+                            </p>
+                          )}
+                          <p className="flex items-center gap-1 text-muted-foreground">
+                            <User className="h-3 w-3" />
+                            {String(event.data.createdBy)}
+                          </p>
+                        </>
+                      )}
+
+                      {event.type === "damage_report" && (
+                        <>
+                          <p>
+                            <span className="font-medium">Condition:</span>{" "}
+                            <StatusBadge status={String(event.data.condition)} />
+                          </p>
+                          <p>
+                            <span className="font-medium">Description:</span>{" "}
+                            {String(event.data.description)}
+                          </p>
+                          {event.data.reportedBy && (
+                            <p className="flex items-center gap-1 text-muted-foreground">
+                              <User className="h-3 w-3" />
+                              {String(event.data.reportedBy)}
+                            </p>
+                          )}
+                          {event.data.requiresApproval && (
+                            <p>
+                              <span className="font-medium">Approval:</span>{" "}
+                              {event.data.approvedAt
+                                ? `Approved on ${formatDate(event.data.approvedAt as Date)}`
+                                : "Pending Approval"}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-xs text-zinc-500">
-                    {formatDate(event.timestamp)}
-                  </span>
                 </div>
-
-                <div className="text-sm">
-                  {event.type === "movement" && (
-                    <div className="space-y-1">
-                      <p>
-                        <span className="font-medium">Type:</span>{" "}
-                        {String(event.data.movementType)}
-                      </p>
-                      {event.data.slipNo ? (
-                        <p>
-                          <span className="font-medium">Slip:</span>{" "}
-                          {String(event.data.slipNo)}
-                        </p>
-                      ) : null}
-                      {event.data.fromLocation ? (
-                        <p>
-                          <span className="font-medium">From:</span>{" "}
-                          {String(event.data.fromLocation)}
-                        </p>
-                      ) : null}
-                      {event.data.toLocation ? (
-                        <p>
-                          <span className="font-medium">To:</span>{" "}
-                          {String(event.data.toLocation)}
-                        </p>
-                      ) : null}
-                      {event.data.condition ? (
-                        <p>
-                          <span className="font-medium">Condition:</span>{" "}
-                          {String(event.data.condition)}
-                        </p>
-                      ) : null}
-                      {event.data.note ? (
-                        <p>
-                          <span className="font-medium">Note:</span>{" "}
-                          {String(event.data.note)}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {event.type === "maintenance_ticket" && (
-                    <div className="space-y-1">
-                      <p>
-                        <span className="font-medium">Status:</span>{" "}
-                        {String(event.data.status)}
-                      </p>
-                      <p>
-                        <span className="font-medium">Problem:</span>{" "}
-                        {String(event.data.problemText)}
-                      </p>
-                      {event.data.vendorName ? (
-                        <p>
-                          <span className="font-medium">Vendor:</span>{" "}
-                          {String(event.data.vendorName)}
-                        </p>
-                      ) : null}
-                      {event.data.estimatedCost ? (
-                        <p>
-                          <span className="font-medium">Estimated Cost:</span> ₹
-                          {String(event.data.estimatedCost)}
-                        </p>
-                      ) : null}
-                      {event.data.actualCost ? (
-                        <p>
-                          <span className="font-medium">Actual Cost:</span> ₹
-                          {String(event.data.actualCost)}
-                        </p>
-                      ) : null}
-                      <p>
-                        <span className="font-medium">Created By:</span>{" "}
-                        {String(event.data.createdBy)}
-                      </p>
-                      {event.data.closedAt ? (
-                        <p>
-                          <span className="font-medium">Closed At:</span>{" "}
-                          {formatDate(event.data.closedAt as Date)}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {event.type === "maintenance_log" && (
-                    <div className="space-y-1">
-                      <p>
-                        <span className="font-medium">Status:</span>{" "}
-                        {String(event.data.status)}
-                      </p>
-                      {event.data.note ? (
-                        <p>
-                          <span className="font-medium">Note:</span>{" "}
-                          {String(event.data.note)}
-                        </p>
-                      ) : null}
-                      <p>
-                        <span className="font-medium">Updated By:</span>{" "}
-                        {String(event.data.createdBy)}
-                      </p>
-                    </div>
-                  )}
-
-                  {event.type === "damage_report" && (
-                    <div className="space-y-1">
-                      <p>
-                        <span className="font-medium">Condition:</span>{" "}
-                        {String(event.data.condition)}
-                      </p>
-                      <p>
-                        <span className="font-medium">Description:</span>{" "}
-                        {String(event.data.description)}
-                      </p>
-                      {event.data.reportedBy ? (
-                        <p>
-                          <span className="font-medium">Reported By:</span>{" "}
-                          {String(event.data.reportedBy)}
-                        </p>
-                      ) : null}
-                      {event.data.requiresApproval ? (
-                        <p>
-                          <span className="font-medium">Approval Status:</span>{" "}
-                          {event.data.approvedAt
-                            ? `Approved on ${formatDate(event.data.approvedAt as Date)}`
-                            : "Pending Approval"}
-                        </p>
-                      ) : null}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-4 rounded-lg border p-4">
-        <h2 className="mb-3 text-lg font-medium">Summary</h2>
-        <div className="grid gap-3 text-sm sm:grid-cols-3">
-          <div>
-            <p className="font-medium">Total Movements</p>
-            <p className="text-2xl font-semibold">{movementLogs.length}</p>
-          </div>
-          <div>
-            <p className="font-medium">Maintenance Tickets</p>
-            <p className="text-2xl font-semibold">
-              {maintenanceTickets.length}
-            </p>
-          </div>
-          <div>
-            <p className="font-medium">Damage Reports</p>
-            <p className="text-2xl font-semibold">{damageReports.length}</p>
-          </div>
-        </div>
-      </section>
-    </main>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
