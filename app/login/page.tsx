@@ -74,7 +74,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       redirect(next);
     } catch (error) {
-      redirect(`/login?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(messageFromError(error))}`);
+      // `redirect()` in Next.js throws a special internal exception with
+      // message "NEXT_REDIRECT". Re-throw that so the framework can handle
+      // the redirect instead of treating it as an error to show on the
+      // login page.
+      if (
+        typeof (error as any)?.message === "string" &&
+        (error as any).message.startsWith("NEXT_REDIRECT")
+      ) {
+        throw error;
+      }
+
+      redirect(
+        `/login?next=${encodeURIComponent(nextPath)}&error=${encodeURIComponent(messageFromError(error))}`,
+      );
     }
   }
 
@@ -100,7 +113,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <input type="hidden" name="next" value={nextPath} />
 
             <div className="space-y-2">
-              <label htmlFor="phone" className="text-sm font-medium leading-none">
+              <label
+                htmlFor="phone"
+                className="text-sm font-medium leading-none"
+              >
                 Phone
               </label>
               <input
@@ -115,7 +131,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="accessCode" className="text-sm font-medium leading-none">
+              <label
+                htmlFor="accessCode"
+                className="text-sm font-medium leading-none"
+              >
                 Access code
               </label>
               <input
@@ -140,7 +159,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <p className="text-center text-xs text-muted-foreground">
           Back to{" "}
-          <Link href="/" className="font-medium underline underline-offset-4 hover:text-primary transition-colors">
+          <Link
+            href="/"
+            className="font-medium underline underline-offset-4 hover:text-primary transition-colors"
+          >
             home
           </Link>
           .
@@ -149,4 +171,3 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     </div>
   );
 }
-
